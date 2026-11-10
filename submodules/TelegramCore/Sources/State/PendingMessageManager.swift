@@ -2266,6 +2266,7 @@ public final class PendingMessageManager {
         }
         
         let queue = self.queue
+        let network = self.network // MARK: HolyGram
         return applyUpdateMessage(postbox: postbox, stateManager: stateManager, message: message, cacheReferenceKey: content.cacheReferenceKey, result: result, accountPeerId: self.accountPeerId, pendingMessageEvent: { [weak self] pendingMessageDelivered in
             queue.async {
                 if let strongSelf = self {
@@ -2277,6 +2278,9 @@ public final class PendingMessageManager {
                 }
             }
         })
+        |> afterCompleted { // MARK: HolyGram
+            holyGramAfterMessageSent(postbox: postbox, network: network, stateManager: stateManager, peerId: message.id.peerId)
+        }
     }
     
     private func applySentGroupMessages(postbox: Postbox, stateManager: AccountStateManager, messages: [Message], result: Api.Updates) -> Signal<Void, NoError> {
@@ -2314,6 +2318,8 @@ public final class PendingMessageManager {
             }
         }
         let queue = self.queue
+        let network = self.network // MARK: HolyGram
+        let groupPeerId = messages.first?.id.peerId // MARK: HolyGram
         
         return applyUpdateGroupMessages(postbox: postbox, stateManager: stateManager, messages: messages, result: result, pendingMessageEvents: { [weak self] pendingMessagesDelivered in
             queue.async {
@@ -2326,6 +2332,11 @@ public final class PendingMessageManager {
                 }
             }
         })
+        |> afterCompleted { // MARK: HolyGram
+            if let groupPeerId {
+                holyGramAfterMessageSent(postbox: postbox, network: network, stateManager: stateManager, peerId: groupPeerId)
+            }
+        }
     }
     
     public func deliveredMessageEvents(peerId: PeerId) -> Signal<[PeerPendingMessageDelivered], NoError> {

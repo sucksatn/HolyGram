@@ -28,6 +28,9 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case search
     case trending
     case content
+    case ghost // MARK: HolyGram
+    case messageHistory // MARK: HolyGram
+    case holyGramPrivacy // MARK: HolyGram
     case tabs
     case folders
     case chatList
@@ -45,6 +48,18 @@ private enum SGControllerSection: Int32, SGItemListSection {
 }
 
 private enum SGBoolSetting: String {
+    // MARK: HolyGram ghost mode
+    case ghostMode
+    case ghostHideOnline
+    case ghostNoReadReceipts
+    case ghostNoTyping
+    case ghostNoStoryViews
+    case ghostReadOnReply
+    case saveDeletedMessages
+    case saveEditHistory
+    case keepSelfDestructingMedia
+    case hideInAppSwitcher
+    case hideSponsoredMessages
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -75,6 +90,7 @@ private enum SGBoolSetting: String {
     case contextShowSaveMedia
     case contextShowMessageReplies
     case contextShowJson
+    case contextShowRepeat // MARK: HolyGram
     case disableScrollToNextChannel
     case disableScrollToNextTopic
     case disableChatSwipeOptions
@@ -168,6 +184,27 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     } else {
         id.increment(1)
     }
+    
+    // MARK: HolyGram ghost mode
+    let ghostOn = SGSimpleSettings.shared.ghostMode
+    entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: SGSimpleSettings.shared.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && SGSimpleSettings.shared.ghostNoReadReceipts))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
+    entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
+    
+    entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages, text: i18n("Settings.MessageHistory.SaveDeleted", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory, text: i18n("Settings.MessageHistory.SaveEdits", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang), enabled: true))
+    entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
+    
+    entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -272,6 +309,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowSaveMedia, value: SGSimpleSettings.shared.contextShowSaveMedia, text: strings.Conversation_SaveToFiles, enabled: true))
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowMessageReplies, value: SGSimpleSettings.shared.contextShowMessageReplies, text: strings.Conversation_ContextViewThread, enabled: true))
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowJson, value: SGSimpleSettings.shared.contextShowJson, text: "JSON", enabled: true))
+    entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowRepeat, value: SGSimpleSettings.shared.contextShowRepeat, text: "+1", enabled: true)) // MARK: HolyGram
     /* entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowRestrict, value: SGSimpleSettings.shared.contextShowRestrict, text: strings.Conversation_ContextMenuBan)) */
     
     entries.append(.header(id: id.count, section: .accountColors, text: i18n("Settings.CustomColors.Header", lang), badge: nil))
@@ -403,6 +441,31 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.startTelescopeWithRearCam = value
         case .hideStories:
             SGSimpleSettings.shared.hideStories = value
+        // MARK: HolyGram ghost mode
+        case .ghostMode:
+            SGSimpleSettings.shared.ghostMode = value
+            simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
+        case .ghostHideOnline:
+            SGSimpleSettings.shared.ghostHideOnline = value
+        case .ghostNoReadReceipts:
+            SGSimpleSettings.shared.ghostNoReadReceipts = value
+            simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
+        case .ghostNoTyping:
+            SGSimpleSettings.shared.ghostNoTyping = value
+        case .ghostNoStoryViews:
+            SGSimpleSettings.shared.ghostNoStoryViews = value
+        case .ghostReadOnReply:
+            SGSimpleSettings.shared.ghostReadOnReply = value
+        case .saveDeletedMessages:
+            SGSimpleSettings.shared.saveDeletedMessages = value
+        case .saveEditHistory:
+            SGSimpleSettings.shared.saveEditHistory = value
+        case .keepSelfDestructingMedia:
+            SGSimpleSettings.shared.keepSelfDestructingMedia = value
+        case .hideInAppSwitcher:
+            SGSimpleSettings.shared.hideInAppSwitcher = value
+        case .hideSponsoredMessages:
+            SGSimpleSettings.shared.hideSponsoredMessages = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:
@@ -467,6 +530,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.stickerTimestamp = value
         case .contextShowJson:
             SGSimpleSettings.shared.contextShowJson = value
+        case .contextShowRepeat:
+            SGSimpleSettings.shared.contextShowRepeat = value
         case .hideRecordingButton:
             SGSimpleSettings.shared.hideRecordingButton = !value
         case .hideTabBar:

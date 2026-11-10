@@ -3,6 +3,7 @@ internal import TelegramApi
 import Postbox
 import SwiftSignalKit
 import MtProtoKit
+import SGSimpleSettings // MARK: HolyGram
 
 private typealias SignalKitTimer = SwiftSignalKit.Timer
 
@@ -43,6 +44,9 @@ private final class AccountPresenceManagerImpl {
     }
     
     private func updatePresence(_ isOnline: Bool) {
+        // MARK: HolyGram ghost mode: always report offline. The timer keeps
+        // running, so turning ghost mode off resumes normal presence within 30s.
+        let reportOnline = isOnline && !SGSimpleSettings.shared.ghostBlocksOnline
         let request: Signal<Api.Bool, MTRpcError>
         if isOnline {
             let timer = SignalKitTimer(timeout: 30.0, repeat: false, completion: { [weak self] in
@@ -53,7 +57,7 @@ private final class AccountPresenceManagerImpl {
             }, queue: self.queue)
             self.onlineTimer = timer
             timer.start()
-            request = self.network.request(Api.functions.account.updateStatus(offline: .boolFalse))
+            request = self.network.request(Api.functions.account.updateStatus(offline: reportOnline ? .boolFalse : .boolTrue))
         } else {
             self.onlineTimer?.invalidate()
             self.onlineTimer = nil

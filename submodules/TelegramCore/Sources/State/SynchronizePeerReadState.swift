@@ -2,6 +2,7 @@ import Foundation
 import Postbox
 internal import TelegramApi
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 
 
 private enum PeerReadStateMarker: Equatable {
@@ -267,6 +268,10 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
         if maxIncomingReadIndex.timestamp <= 0 {
             return .single(readState)
         }
+        // MARK: HolyGram ghost mode: keep the read mark local.
+        if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+            return .single(readState)
+        }
         return inputSecretChat(postbox: postbox, peerId: peerId)
         |> mapToSignal { inputPeer -> Signal<PeerReadState, PeerReadStateValidationError> in
             // A rejected push must not be retried: the operation is only cleared once it
@@ -296,6 +301,10 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
                     }
                     |> mapToSignal { _ -> Signal<Void, NoError> in
                         return .complete()
+                    }
+                    // MARK: HolyGram ghost mode: keep the read mark local.
+                    if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                        pushSignal = .complete()
                     }
                     if markedUnread {
                         pushSignal = pushSignal
@@ -336,6 +345,10 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
                         return .complete()
                     }
 
+                    // MARK: HolyGram ghost mode: keep the read mark local.
+                    if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                        pushSignal = .complete()
+                    }
                     if markedUnread {
                         pushSignal = pushSignal
                         |> then(network.request(Api.functions.messages.markDialogUnread(flags: 1 << 0, parentPeer: nil, peer: .inputDialogPeer(.init(peer: inputPeer))))

@@ -2110,7 +2110,34 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }))
     }
 
+    // MARK: HolyGram: hide content in the app switcher
+    private var holyGramPrivacyBlurView: UIView?
+    
+    private func holyGramShowPrivacyBlur() {
+        guard SGSimpleSettings.shared.hideInAppSwitcher, self.holyGramPrivacyBlurView == nil, let window = self.mainWindow?.hostView.containerView.window else {
+            return
+        }
+        let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
+        blurView.frame = window.bounds
+        blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        window.addSubview(blurView)
+        self.holyGramPrivacyBlurView = blurView
+    }
+    
+    private func holyGramHidePrivacyBlur() {
+        guard let blurView = self.holyGramPrivacyBlurView else {
+            return
+        }
+        self.holyGramPrivacyBlurView = nil
+        UIView.animate(withDuration: 0.15, animations: {
+            blurView.alpha = 0.0
+        }, completion: { _ in
+            blurView.removeFromSuperview()
+        })
+    }
+    
     func handleWillResignActive() {
+        self.holyGramShowPrivacyBlur() // MARK: HolyGram
         self.isActiveValue = false
         self.isActivePromise.set(false)
         self.clearNotificationsManager?.commitNow()
@@ -2228,6 +2255,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
 
     func handleDidBecomeActive() {
+        self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true

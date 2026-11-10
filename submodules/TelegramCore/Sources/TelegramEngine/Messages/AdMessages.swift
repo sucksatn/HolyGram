@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 
 private class AdMessagesHistoryContextImpl {
@@ -492,6 +493,10 @@ private class AdMessagesHistoryContextImpl {
         }
         |> mapToSignal { inputPeer -> Signal<(interPostInterval: Int32?, startDelay: Int32?, betweenDelay: Int32?, messages: [Message]), NoError> in
             guard let inputPeer else {
+                return .single((nil, nil, nil, []))
+            }
+            // MARK: HolyGram: no sponsored messages
+            if SGSimpleSettings.shared.hideSponsoredMessages {
                 return .single((nil, nil, nil, []))
             }
             var flags: Int32 = 0

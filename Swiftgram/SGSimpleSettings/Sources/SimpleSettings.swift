@@ -55,6 +55,14 @@ public class SGSimpleSettings {
         let tasks = [
 //            { let _ = self.allChatsFolderPositionOverride },
             { let _ = self.tabBarSearchEnabled },
+            { let _ = self.ghostMode },
+            { let _ = self.ghostHideOnline },
+            { let _ = self.ghostNoReadReceipts },
+            { let _ = self.ghostNoTyping },
+            { let _ = self.ghostNoStoryViews },
+            { let _ = self.ghostReadOnReply },
+            { let _ = self.saveDeletedMessages },
+            { let _ = self.saveEditHistory },
             { let _ = self.allChatsHidden },
             { let _ = self.hideTabBar },
             { let _ = self.bottomTabStyle },
@@ -107,6 +115,18 @@ public class SGSimpleSettings {
         case outgoingPhotoQuality
         case storyStealthMode
         case canUseStealthMode
+        // MARK: HolyGram ghost mode
+        case ghostMode
+        case ghostHideOnline
+        case ghostNoReadReceipts
+        case ghostNoTyping
+        case ghostNoStoryViews
+        case ghostReadOnReply
+        case hideInAppSwitcher
+        case hideSponsoredMessages
+        case keepSelfDestructingMedia
+        case saveDeletedMessages
+        case saveEditHistory
         case disableSwipeToRecordStory
         case quickTranslateButton
         case outgoingLanguageTranslation
@@ -124,6 +144,7 @@ public class SGSimpleSettings {
         case contextShowSaveMedia
         case contextShowMessageReplies
         case contextShowJson
+        case contextShowRepeat // MARK: HolyGram
         case disableScrollToNextChannel
         case disableScrollToNextTopic
         case disableChatSwipeOptions
@@ -269,6 +290,17 @@ public class SGSimpleSettings {
         Keys.outgoingPhotoQuality.rawValue: 70,
         Keys.storyStealthMode.rawValue: false,
         Keys.canUseStealthMode.rawValue: true,
+        Keys.ghostMode.rawValue: false,
+        Keys.ghostHideOnline.rawValue: true,
+        Keys.ghostNoReadReceipts.rawValue: true,
+        Keys.ghostNoTyping.rawValue: true,
+        Keys.ghostNoStoryViews.rawValue: true,
+        Keys.ghostReadOnReply.rawValue: true,
+        Keys.hideInAppSwitcher.rawValue: false,
+        Keys.hideSponsoredMessages.rawValue: true,
+        Keys.keepSelfDestructingMedia.rawValue: false,
+        Keys.saveDeletedMessages.rawValue: true,
+        Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
         Keys.quickTranslateButton.rawValue: false,
         Keys.outgoingLanguageTranslation.rawValue: [:],
@@ -285,6 +317,7 @@ public class SGSimpleSettings {
         Keys.contextShowSaveMedia.rawValue: true,
         Keys.contextShowMessageReplies.rawValue: true,
         Keys.contextShowJson.rawValue: false,
+        Keys.contextShowRepeat.rawValue: true,
         Keys.disableScrollToNextChannel.rawValue: false,
         Keys.disableScrollToNextTopic.rawValue: false,
         Keys.disableChatSwipeOptions.rawValue: false,
@@ -340,7 +373,7 @@ public class SGSimpleSettings {
         Keys.legacyNotificationsFix.rawValue: false,
         Keys.pinnedMessageNotifications.rawValue: PinnedMessageNotificationsSettings.default.rawValue,
         Keys.mentionsAndRepliesNotifications.rawValue: MentionsAndRepliesNotificationsSettings.default.rawValue,
-        Keys.status.rawValue: 1,
+        Keys.status.rawValue: 2, // MARK: HolyGram: Pro always on
         Keys.showRepostToStoryV2.rawValue: true,
         Keys.hideAccountInNotifications.rawValue: false,
     ]
@@ -397,6 +430,46 @@ public class SGSimpleSettings {
     
     @UserDefault(key: Keys.canUseStealthMode.rawValue)
     public var canUseStealthMode: Bool    
+
+    // MARK: HolyGram ghost mode
+    @UserDefault(key: Keys.ghostMode.rawValue)
+    public var ghostMode: Bool
+
+    @UserDefault(key: Keys.ghostHideOnline.rawValue)
+    public var ghostHideOnline: Bool
+
+    @UserDefault(key: Keys.ghostNoReadReceipts.rawValue)
+    public var ghostNoReadReceipts: Bool
+
+    @UserDefault(key: Keys.ghostNoTyping.rawValue)
+    public var ghostNoTyping: Bool
+
+    @UserDefault(key: Keys.ghostNoStoryViews.rawValue)
+    public var ghostNoStoryViews: Bool
+
+    /// Send the read receipt for a chat when replying in it, even in ghost mode.
+    @UserDefault(key: Keys.ghostReadOnReply.rawValue)
+    public var ghostReadOnReply: Bool
+
+    // MARK: HolyGram privacy
+    /// Blur the app in the app switcher.
+    @UserDefault(key: Keys.hideInAppSwitcher.rawValue)
+    public var hideInAppSwitcher: Bool
+
+    /// Don't load sponsored messages in channels.
+    @UserDefault(key: Keys.hideSponsoredMessages.rawValue)
+    public var hideSponsoredMessages: Bool
+
+    /// Self-destructing photos and videos in cloud chats stay viewable after their timer.
+    @UserDefault(key: Keys.keepSelfDestructingMedia.rawValue)
+    public var keepSelfDestructingMedia: Bool
+
+    // MARK: HolyGram message history
+    @UserDefault(key: Keys.saveDeletedMessages.rawValue)
+    public var saveDeletedMessages: Bool
+
+    @UserDefault(key: Keys.saveEditHistory.rawValue)
+    public var saveEditHistory: Bool
     
     @UserDefault(key: Keys.disableSwipeToRecordStory.rawValue)
     public var disableSwipeToRecordStory: Bool   
@@ -448,6 +521,10 @@ public class SGSimpleSettings {
     
     @UserDefault(key: Keys.contextShowJson.rawValue)
     public var contextShowJson: Bool
+
+    // MARK: HolyGram: "+1" repeats a message in the same chat
+    @UserDefault(key: Keys.contextShowRepeat.rawValue)
+    public var contextShowRepeat: Bool
     
     @UserDefault(key: Keys.disableScrollToNextChannel.rawValue)
     public var disableScrollToNextChannel: Bool
@@ -552,7 +629,7 @@ public class SGSimpleSettings {
     @UserDefault(key: Keys.status.rawValue, userDefaults: UserDefaults(suiteName: APP_GROUP_IDENTIFIER) ?? .standard)
     public var status: Int64
 
-    public var ephemeralStatus: Int64 = 1
+    public var ephemeralStatus: Int64 = 2 // MARK: HolyGram: Pro always on
     
     @UserDefault(key: Keys.messageFilterKeywords.rawValue)
     public var messageFilterKeywords: [String]
@@ -627,6 +704,16 @@ extension SGSimpleSettings {
     public var isStealthModeEnabled: Bool {
         return storyStealthMode && canUseStealthMode
     }
+
+    // MARK: HolyGram ghost mode
+    /// Never report "online"; the account always looks offline.
+    public var ghostBlocksOnline: Bool { ghostMode && ghostHideOnline }
+    /// Messages are marked read locally only; the sender keeps seeing them as unread.
+    public var ghostBlocksReadReceipts: Bool { ghostMode && ghostNoReadReceipts }
+    /// "typing…", "recording voice…" and similar activities are not sent.
+    public var ghostBlocksTyping: Bool { ghostMode && ghostNoTyping }
+    /// Stories are viewed without the author seeing it.
+    public var ghostBlocksStoryViews: Bool { ghostMode && ghostNoStoryViews }
     
     public static func makeOutgoingLanguageTranslationKey(accountId: Int64, peerId: Int64) -> String {
         return "\(accountId):\(peerId)"

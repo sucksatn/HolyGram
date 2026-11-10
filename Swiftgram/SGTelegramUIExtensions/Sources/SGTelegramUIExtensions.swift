@@ -99,6 +99,8 @@ enum SGContextMenuActionFactory {
     case json(controllerInteraction: ChatControllerInteraction, context: AccountContext)
     case saveToCloud(interfaceInteraction: ChatPanelInterfaceInteraction, selectAll: Bool, isImage: Bool, messages: [EngineRawMessage])
     case hideForwardName(interfaceInteraction: ChatPanelInterfaceInteraction, selectAll: Bool, isImage: Bool, messages: [EngineRawMessage])
+    case editHistory(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case repeatMessage(context: AccountContext) // MARK: HolyGram
 }
 
 func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) -> ContextMenuItem {
@@ -124,7 +126,62 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             interfaceInteraction.forwardMessages(selectAll || isImage ? messages : [message], "forwardMessagesWithNoNames")
             f(.dismissWithoutContent)
         }))
+    // MARK: HolyGram
+    case let .repeatMessage(context):
+        return .action(ContextMenuActionItem(text: "+1", icon: { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Repeat") ?? UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            let _ = enqueueMessages(account: context.account, peerId: message.id.peerId, messages: [
+                .forward(source: message.id, threadId: message.threadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: true, hideCaptions: false)], correlationId: nil)
+            ]).startStandalone()
+        }))
+    case let .editHistory(controllerInteraction):
+        return .action(ContextMenuActionItem(text: i18n("Message.HolyGram.EditHistory", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgShowEditHistory(controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)
+            }
+        }))
     }
+}
+
+// MARK: HolyGram
+private func hgShowEditHistory(controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) {
+    guard let navigationController = controllerInteraction.navigationController(), var presenter = navigationController.view.window?.rootViewController else {
+        return
+    }
+    while let presented = presenter.presentedViewController {
+        presenter = presented
+    }
+    let lang = chatPresentationInterfaceState.strings.baseLanguageCode
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: lang)
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    func dateString(_ timestamp: Int32) -> String {
+        return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+    }
+
+    let history = message.holyGramEditHistory
+    var parts: [String] = []
+    for (index, entry) in history.enumerated() {
+        let title = index == 0 ? i18n("Message.HolyGram.EditHistory.Original", lang) : "#\(index + 1)"
+        parts.append("\(title) · \(dateString(entry.date))\n\(entry.text)")
+    }
+    let currentDate = message.editedTime ?? message.timestamp
+    parts.append("\(i18n("Message.HolyGram.EditHistory.Current", lang)) · \(dateString(currentDate))\n\(message.text)")
+
+    let alert = UIAlertController(title: i18n("Message.HolyGram.EditHistory", lang), message: parts.joined(separator: "\n\n———\n\n"), preferredStyle: .alert)
+    if !message.isCopyProtected() {
+        alert.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Conversation_ContextMenuCopy, style: .default, handler: { _ in
+            UIPasteboard.general.string = history.map(\.text).joined(separator: "\n\n")
+        }))
+    }
+    alert.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_Close, style: .cancel, handler: nil))
+    presenter.present(alert, animated: true)
 }
 
 func sgMakeSelectFromUserContextMenuAction(context: AccountContext, chatPresentationInterfaceState: ChatPresentationInterfaceState, controllerInteraction: ChatControllerInteraction, interfaceInteraction: ChatPanelInterfaceInteraction, message: EngineRawMessage) -> ContextMenuItem? {

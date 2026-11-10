@@ -108,6 +108,7 @@ struct SessionBackupManagerView: View {
     let context: AccountContext
     
     @State private var sessions: [SessionBackup] = []
+    private var holyGramIsRussian: Bool { lang.hasPrefix("ru") || lang.hasPrefix("uk") } // MARK: HolyGram
     @State private var loggedInPeerIDs: [Int64] = []
     @State private var loggedInAccountsDisposable: Disposable? = nil
     
@@ -348,6 +349,38 @@ struct SessionBackupManagerView: View {
             }
             
             Text("SessionBackup.Notice".i18n(lang))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            // MARK: HolyGram: move accounts to another device
+            Section(header: Text(holyGramIsRussian ? "Перенос на другое устройство" : "Move to Another Device")) {
+                Button(action: {
+                    HolyGramAccountTransferCoordinator.startExport(context: context, lang: lang, from: wrapperController?.view)
+                }) {
+                    HStack {
+                        Image(systemName: "square.and.arrow.up")
+                            .frame(width: 30)
+                        Text(holyGramIsRussian ? "Экспорт аккаунтов в файл" : "Export Accounts to File")
+                        Spacer()
+                    }
+                }
+                Button(action: {
+                    HolyGramAccountTransferCoordinator.startImport(context: context, lang: lang, from: wrapperController?.view, onImported: {
+                        withAnimation {
+                            sessions = getBackedSessions()
+                        }
+                    })
+                }) {
+                    HStack {
+                        Image(systemName: "square.and.arrow.down")
+                            .frame(width: 30)
+                        Text(holyGramIsRussian ? "Импорт аккаунтов из файла" : "Import Accounts from File")
+                        Spacer()
+                    }
+                }
+            }
+            
+            Text(holyGramIsRussian ? "Файл зашифрован вашим паролем. Передайте его через AirDrop или «Файлы» и откройте здесь на новом устройстве. Не пользуйтесь одним и тем же аккаунтом на двух устройствах после переноса: удалите его со старого через «Удалить из приложения»." : "The file is encrypted with your password. Send it via AirDrop or Files and open it here on the new device. Don't keep using the same account on both devices afterwards: remove it from the old one with Remove from App.")
                 .font(.caption)
                 .foregroundColor(.secondary)
             

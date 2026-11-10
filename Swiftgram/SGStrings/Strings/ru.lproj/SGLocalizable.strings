@@ -277,3 +277,28 @@
 "Settings.NY.Notice" = "Доступны только на ограниченное время!";
 "Settings.videoControlsInFooter" = "Кнопки видео снизу";
 "Settings.HideAccountInNotifications" = "Скрыть аккаунт в уведомлениях";
+
+/* HolyGram: ghost mode */
+"Settings.Ghost.Header" = "РЕЖИМ ПРИЗРАКА";
+"Settings.Ghost.Enabled" = "Режим призрака";
+"Settings.Ghost.HideOnline" = "Скрывать статус «в сети»";
+"Settings.Ghost.NoReadReceipts" = "Не отправлять отметки о прочтении";
+"Settings.Ghost.NoTyping" = "Не отправлять «печатает…»";
+"Settings.Ghost.NoStoryViews" = "Анонимный просмотр историй";
+"Settings.Ghost.Notice" = "Прочитанные вами сообщения остаются непрочитанными у отправителя. После отправки сообщения статус сразу возвращается в «не в сети».";
+
+/* HolyGram: message history */
+"Settings.MessageHistory.Header" = "ИСТОРИЯ СООБЩЕНИЙ";
+"Settings.MessageHistory.SaveDeleted" = "Сохранять удалённые сообщения";
+"Settings.MessageHistory.SaveEdits" = "Сохранять историю правок";
+"Settings.MessageHistory.Notice" = "Сообщения, удалённые собеседником, остаются на этом устройстве с пометкой 🗑. Чтобы посмотреть прежние версии, удерживайте изменённое сообщение и выберите «История правок». Работает для сообщений, полученных при запущенном HolyGram.";
+"Message.HolyGram.EditHistory" = "История правок";
+"Message.HolyGram.EditHistory.Current" = "Сейчас";
+"Message.HolyGram.EditHistory.Original" = "Исходный текст";
+"Settings.Ghost.ReadOnReply" = "Отмечать прочитанным при ответе";
+
+/* HolyGram: privacy */
+"Settings.HGPrivacy.Header" = "КОНФИДЕНЦИАЛЬНОСТЬ";
+"Settings.HGPrivacy.HideInAppSwitcher" = "Размывать в списке приложений";
+"Settings.HGPrivacy.HideSponsored" = "Скрывать рекламу в каналах";
+"Settings.MessageHistory.KeepSelfDestructing" = "Сохранять исчезающие фото и видео";
