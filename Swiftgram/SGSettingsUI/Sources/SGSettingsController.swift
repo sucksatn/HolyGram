@@ -30,6 +30,7 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case content
     case ghost // MARK: HolyGram
     case messageHistory // MARK: HolyGram
+    case holyGramPrivacy // MARK: HolyGram
     case tabs
     case folders
     case chatList
@@ -56,6 +57,7 @@ private enum SGBoolSetting: String {
     case ghostReadOnReply
     case saveDeletedMessages
     case saveEditHistory
+    case hideInAppSwitcher
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -195,6 +197,9 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages, text: i18n("Settings.MessageHistory.SaveDeleted", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory, text: i18n("Settings.MessageHistory.SaveEdits", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
+    
+    entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -449,6 +454,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.saveDeletedMessages = value
         case .saveEditHistory:
             SGSimpleSettings.shared.saveEditHistory = value
+        case .hideInAppSwitcher:
+            SGSimpleSettings.shared.hideInAppSwitcher = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

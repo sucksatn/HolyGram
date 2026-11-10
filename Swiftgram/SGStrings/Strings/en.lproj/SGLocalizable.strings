@@ -301,3 +301,7 @@
 "Message.HolyGram.EditHistory.Current" = "Current";
 "Message.HolyGram.EditHistory.Original" = "Original";
 "Settings.Ghost.ReadOnReply" = "Mark as Read When Replying";
+
+/* HolyGram: privacy */
+"Settings.HGPrivacy.Header" = "PRIVACY";
+"Settings.HGPrivacy.HideInAppSwitcher" = "Blur in App Switcher";

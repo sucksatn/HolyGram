@@ -296,3 +296,7 @@
 "Message.HolyGram.EditHistory.Current" = "Сейчас";
 "Message.HolyGram.EditHistory.Original" = "Исходный текст";
 "Settings.Ghost.ReadOnReply" = "Отмечать прочитанным при ответе";
+
+/* HolyGram: privacy */
+"Settings.HGPrivacy.Header" = "КОНФИДЕНЦИАЛЬНОСТЬ";
+"Settings.HGPrivacy.HideInAppSwitcher" = "Размывать в списке приложений";

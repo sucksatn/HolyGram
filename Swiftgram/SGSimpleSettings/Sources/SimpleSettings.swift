@@ -122,6 +122,7 @@ public class SGSimpleSettings {
         case ghostNoTyping
         case ghostNoStoryViews
         case ghostReadOnReply
+        case hideInAppSwitcher
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -292,6 +293,7 @@ public class SGSimpleSettings {
         Keys.ghostNoTyping.rawValue: true,
         Keys.ghostNoStoryViews.rawValue: true,
         Keys.ghostReadOnReply.rawValue: true,
+        Keys.hideInAppSwitcher.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -442,6 +444,11 @@ public class SGSimpleSettings {
     /// Send the read receipt for a chat when replying in it, even in ghost mode.
     @UserDefault(key: Keys.ghostReadOnReply.rawValue)
     public var ghostReadOnReply: Bool
+
+    // MARK: HolyGram privacy
+    /// Blur the app in the app switcher.
+    @UserDefault(key: Keys.hideInAppSwitcher.rawValue)
+    public var hideInAppSwitcher: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)
