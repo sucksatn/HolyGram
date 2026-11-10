@@ -60,6 +60,8 @@ public class SGSimpleSettings {
             { let _ = self.ghostNoReadReceipts },
             { let _ = self.ghostNoTyping },
             { let _ = self.ghostNoStoryViews },
+            { let _ = self.saveDeletedMessages },
+            { let _ = self.saveEditHistory },
             { let _ = self.allChatsHidden },
             { let _ = self.hideTabBar },
             { let _ = self.bottomTabStyle },
@@ -118,6 +120,8 @@ public class SGSimpleSettings {
         case ghostNoReadReceipts
         case ghostNoTyping
         case ghostNoStoryViews
+        case saveDeletedMessages
+        case saveEditHistory
         case disableSwipeToRecordStory
         case quickTranslateButton
         case outgoingLanguageTranslation
@@ -285,6 +289,8 @@ public class SGSimpleSettings {
         Keys.ghostNoReadReceipts.rawValue: true,
         Keys.ghostNoTyping.rawValue: true,
         Keys.ghostNoStoryViews.rawValue: true,
+        Keys.saveDeletedMessages.rawValue: true,
+        Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
         Keys.quickTranslateButton.rawValue: false,
         Keys.outgoingLanguageTranslation.rawValue: [:],
@@ -429,6 +435,13 @@ public class SGSimpleSettings {
 
     @UserDefault(key: Keys.ghostNoStoryViews.rawValue)
     public var ghostNoStoryViews: Bool
+
+    // MARK: HolyGram message history
+    @UserDefault(key: Keys.saveDeletedMessages.rawValue)
+    public var saveDeletedMessages: Bool
+
+    @UserDefault(key: Keys.saveEditHistory.rawValue)
+    public var saveEditHistory: Bool
     
     @UserDefault(key: Keys.disableSwipeToRecordStory.rawValue)
     public var disableSwipeToRecordStory: Bool   

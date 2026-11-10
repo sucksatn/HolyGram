@@ -1588,6 +1588,11 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             sgActions.append(showJsonAction)
         }
         //
+        // MARK: HolyGram
+        if !message.holyGramEditHistory.isEmpty {
+            actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+        }
+        //
         
         var threadId: Int64?
         var threadMessageCount: Int = 0

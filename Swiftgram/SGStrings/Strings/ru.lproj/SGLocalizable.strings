@@ -286,3 +286,12 @@
 "Settings.Ghost.NoTyping" = "Не отправлять «печатает…»";
 "Settings.Ghost.NoStoryViews" = "Анонимный просмотр историй";
 "Settings.Ghost.Notice" = "Прочитанные вами сообщения остаются непрочитанными у отправителя.";
+
+/* HolyGram: message history */
+"Settings.MessageHistory.Header" = "ИСТОРИЯ СООБЩЕНИЙ";
+"Settings.MessageHistory.SaveDeleted" = "Сохранять удалённые сообщения";
+"Settings.MessageHistory.SaveEdits" = "Сохранять историю правок";
+"Settings.MessageHistory.Notice" = "Сообщения, удалённые собеседником, остаются на этом устройстве с пометкой 🗑. Чтобы посмотреть прежние версии, удерживайте изменённое сообщение и выберите «История правок». Работает для сообщений, полученных при запущенном HolyGram.";
+"Message.HolyGram.EditHistory" = "История правок";
+"Message.HolyGram.EditHistory.Current" = "Сейчас";
+"Message.HolyGram.EditHistory.Original" = "Исходный текст";

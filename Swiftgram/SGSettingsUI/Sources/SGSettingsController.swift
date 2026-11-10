@@ -29,6 +29,7 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case trending
     case content
     case ghost // MARK: HolyGram
+    case messageHistory // MARK: HolyGram
     case tabs
     case folders
     case chatList
@@ -52,6 +53,8 @@ private enum SGBoolSetting: String {
     case ghostNoReadReceipts
     case ghostNoTyping
     case ghostNoStoryViews
+    case saveDeletedMessages
+    case saveEditHistory
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -185,6 +188,11 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
     entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
+    
+    entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages, text: i18n("Settings.MessageHistory.SaveDeleted", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory, text: i18n("Settings.MessageHistory.SaveEdits", lang), enabled: true))
+    entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -432,6 +440,10 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.ghostNoTyping = value
         case .ghostNoStoryViews:
             SGSimpleSettings.shared.ghostNoStoryViews = value
+        case .saveDeletedMessages:
+            SGSimpleSettings.shared.saveDeletedMessages = value
+        case .saveEditHistory:
+            SGSimpleSettings.shared.saveEditHistory = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

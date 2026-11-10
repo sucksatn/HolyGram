@@ -291,3 +291,12 @@
 "Settings.Ghost.NoTyping" = "Don't Send “Typing…”";
 "Settings.Ghost.NoStoryViews" = "View Stories Anonymously";
 "Settings.Ghost.Notice" = "Messages you read stay unread for the sender.";
+
+/* HolyGram: message history */
+"Settings.MessageHistory.Header" = "MESSAGE HISTORY";
+"Settings.MessageHistory.SaveDeleted" = "Keep Deleted Messages";
+"Settings.MessageHistory.SaveEdits" = "Keep Edit History";
+"Settings.MessageHistory.Notice" = "Messages deleted by others stay on this device marked with 🗑. Long-press an edited message and choose “Edit History” to see earlier versions. Only works for messages received while HolyGram was running.";
+"Message.HolyGram.EditHistory" = "Edit History";
+"Message.HolyGram.EditHistory.Current" = "Current";
+"Message.HolyGram.EditHistory.Original" = "Original";
