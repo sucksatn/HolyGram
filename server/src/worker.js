@@ -1,40 +1,54 @@
 // Cloudflare Worker entry point: status API for the app and the admin bot webhook.
 import { handleCommand, importSigningKey, signedFlags, signedStatus } from "./core.js";
 
-function d1Storage(db) {
-  const row = (r) => r && { userId: r.user_id, expiresAt: r.expires_at, note: r.note, grantedBy: r.granted_by, updatedAt: r.updated_at };
+// Workers KV: "sub:<userId>" -> subscription record, "flags:disabled" -> comma list.
+// Reads are cheap; writes happen only from admin bot commands.
+function kvStorage(kv) {
+  const subKey = (userId) => `sub:${userId}`;
+  async function allRecords() {
+    const records = [];
+    let cursor;
+    do {
+      const page = await kv.list({ prefix: "sub:", cursor });
+      for (const { name } of page.keys) {
+        const record = await kv.get(name, "json");
+        if (record) records.push(record);
+      }
+      cursor = page.list_complete ? undefined : page.cursor;
+    } while (cursor);
+    return records;
+  }
+  const isActive = (r, now) => r.expiresAt === -1 || r.expiresAt > now;
   return {
     async get(userId) {
-      return row(await db.prepare("SELECT * FROM subscriptions WHERE user_id = ?").bind(userId).first());
+      return await kv.get(subKey(userId), "json");
     },
-    async put(r) {
-      await db.prepare(
-        "INSERT INTO subscriptions (user_id, expires_at, note, granted_by, updated_at) VALUES (?, ?, ?, ?, ?) " +
-        "ON CONFLICT(user_id) DO UPDATE SET expires_at = excluded.expires_at, note = excluded.note, granted_by = excluded.granted_by, updated_at = excluded.updated_at"
-      ).bind(r.userId, r.expiresAt, r.note, r.grantedBy, r.updatedAt).run();
+    async put(record) {
+      await kv.put(subKey(record.userId), JSON.stringify(record));
     },
     async remove(userId) {
-      await db.prepare("DELETE FROM subscriptions WHERE user_id = ?").bind(userId).run();
+      await kv.delete(subKey(userId));
     },
     async listActive(now, limit) {
-      const { results } = await db.prepare(
-        "SELECT * FROM subscriptions WHERE expires_at = -1 OR expires_at > ? ORDER BY updated_at DESC LIMIT ?"
-      ).bind(now, limit).all();
-      return results.map(row);
+      return (await allRecords())
+        .filter((r) => isActive(r, now))
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, limit);
     },
     async getDisabledFeatures() {
-      const r = await db.prepare("SELECT value FROM settings WHERE key = 'disabled_features'").first();
-      return r?.value ? r.value.split(",").filter(Boolean) : [];
+      const value = await kv.get("flags:disabled");
+      return value ? value.split(",").filter(Boolean) : [];
     },
     async setDisabledFeatures(list) {
-      await db.prepare("INSERT INTO settings (key, value) VALUES ('disabled_features', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
-        .bind(list.join(",")).run();
+      await kv.put("flags:disabled", list.join(","));
     },
     async counts(now) {
-      const r = await db.prepare(
-        "SELECT COUNT(*) AS total, SUM(CASE WHEN expires_at = -1 OR expires_at > ? THEN 1 ELSE 0 END) AS active, SUM(CASE WHEN expires_at = -1 THEN 1 ELSE 0 END) AS forever FROM subscriptions"
-      ).bind(now).first();
-      return { total: r.total || 0, active: r.active || 0, forever: r.forever || 0 };
+      const all = await allRecords();
+      return {
+        total: all.length,
+        active: all.filter((r) => isActive(r, now)).length,
+        forever: all.filter((r) => r.expiresAt === -1).length,
+      };
     },
   };
 }
@@ -58,7 +72,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const now = Math.floor(Date.now() / 1000);
-    const storage = d1Storage(env.DB);
+    const storage = kvStorage(env.SUBS);
 
     if (request.method === "GET" && url.pathname === "/v1/status") {
       const userId = Number(url.searchParams.get("user_id"));

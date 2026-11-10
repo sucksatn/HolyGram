@@ -1,6 +1,8 @@
 # HolyGram Pro — сервер подписок и бот-админка
 
-Cloudflare Worker + база D1. На обычной нагрузке бесплатно (лимит Cloudflare — 100 000 запросов в день).
+Cloudflare Worker + Workers KV. Бесплатно: 100 000 запросов и 100 000 чтений KV в день.
+
+Рабочий сервер: https://holygram-pro.holygram.workers.dev, бот: @HolygramBot.
 
 - `GET /v1/status?user_id=…` — приложение спрашивает статус Pro. Ответ подписан ключом Ed25519, приложение проверяет подпись встроенным публичным ключом, так что ответ нельзя подделать прокси или правкой настроек.
 - `POST /bot/<WEBHOOK_SECRET>` — webhook Telegram-бота. Команды управления подписками принимаются только от `ADMIN_IDS`.
@@ -32,8 +34,7 @@ Cloudflare Worker + база D1. На обычной нагрузке беспл
 4. В папке `server`:
    ```sh
    npx wrangler login
-   npx wrangler d1 create holygram-pro          # вставьте database_id в wrangler.toml
-   npx wrangler d1 execute holygram-pro --remote --file=schema.sql
+   npx wrangler kv namespace create SUBS        # вставьте id в wrangler.toml
    node tools/genkey.mjs                        # выдаст SIGNING_KEY и публичный ключ
    npx wrangler secret put SIGNING_KEY          # вставьте SIGNING_KEY
    npx wrangler secret put BOT_TOKEN            # токен от BotFather

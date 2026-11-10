@@ -1,11 +1,11 @@
 name = "holygram-pro"
 main = "src/worker.js"
 compatibility_date = "2026-10-01"
+workers_dev = true
 
-[[d1_databases]]
-binding = "DB"
-database_name = "holygram-pro"
-database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+[[kv_namespaces]]
+binding = "SUBS"
+id = "b551fb8b14dd47da8498727c1bdd5cca"
 
 # Secrets (set with `npx wrangler secret put NAME`, never commit them):
 #   BOT_TOKEN       token from @BotFather

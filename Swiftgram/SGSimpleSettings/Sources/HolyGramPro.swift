@@ -9,10 +9,10 @@ public final class HolyGramPro {
 
     // Filled in once the server is deployed (server/README.md). While empty, Pro checks are off
     // and every Pro feature is available, so development builds keep working.
-    public static let serverURL = ""
-    public static let publicKeyBase64 = ""
+    public static let serverURL = "https://holygram-pro.holygram.workers.dev"
+    public static let publicKeyBase64 = "e2sgxBM+seP6hrXgPIq5ErBiI15xH7HhhA3wVJGP3Sg="
     /// Bot users write to for buying or renewing Pro, without "@".
-    public static let botUsername = ""
+    public static let botUsername = "HolygramBot"
 
     /// How long a signed status is trusted without reaching the server.
     private static let maxStatusAge: TimeInterval = 3 * 86400
