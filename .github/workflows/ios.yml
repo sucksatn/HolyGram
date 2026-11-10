@@ -1,0 +1,134 @@
+name: HolyGram iOS
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # macOS 27 + Xcode 27.1, as required by versions.json
+    runs-on: xcode-27
+    timeout-minutes: 330
+
+    steps:
+      - name: Check Telegram API keys
+        env:
+          API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          if [ -z "$API_ID" ] || [ -z "$API_HASH" ]; then
+            echo "::error::Add TELEGRAM_API_ID and TELEGRAM_API_HASH in Settings > Secrets and variables > Actions (get them at https://my.telegram.org/apps)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Select Xcode
+        id: versions
+        run: |
+          XCODE_VERSION=$(python3 -c 'import json;print(json.load(open("versions.json"))["xcode"])')
+          sudo xcode-select -s /Applications/Xcode_$XCODE_VERSION.app/Contents/Developer
+          xcodebuild -version
+          echo "xcode=$XCODE_VERSION" >> "$GITHUB_OUTPUT"
+          df -h "$HOME"
+
+      # Source paths end up in the binary, so always build from the same directory.
+      - name: Move source to canonical path
+        run: |
+          sudo mkdir -p /Users/Shared
+          sudo chown "$USER" /Users/Shared
+          mv "$GITHUB_WORKSPACE" /Users/Shared/telegram-ios
+          mkdir -p "$GITHUB_WORKSPACE"
+
+      - name: Restore Bazel cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/telegram-bazel-cache
+          key: bazel-xcode${{ steps.versions.outputs.xcode }}-${{ github.run_id }}
+          restore-keys: |
+            bazel-xcode${{ steps.versions.outputs.xcode }}-
+
+      - name: Write build configuration
+        env:
+          API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+        run: |
+          cd /Users/Shared/telegram-ios
+          # bundle_id and team_id must match the fake signing profiles in
+          # build-system/fake-codesigning. The IPA is re-signed with your own
+          # Apple ID when you sideload it.
+          python3 - <<'PY'
+          import json, os
+          json.dump({
+              "bundle_id": "ph.telegra.Telegraph",
+              "api_id": os.environ["API_ID"],
+              "api_hash": os.environ["API_HASH"],
+              "team_id": "C67CF9S4VU",
+              "app_center_id": "0",
+              "is_internal_build": "false",
+              "is_appstore_build": "false",
+              "appstore_id": "0",
+              "app_specific_url_scheme": "tg",
+              "premium_iap_product_id": "",
+              "enable_siri": False,
+              "enable_icloud": False,
+              "sg_config": ""
+          }, open("build-system/holygram-configuration.json", "w"), indent=2)
+          PY
+
+      - name: Build
+        run: |
+          set -x
+          cd /Users/Shared/telegram-ios
+          BUILD_NUMBER=$(( $(git rev-list --count HEAD) + $(cat build_number_offset) ))
+          APP_VERSION=$(python3 -c 'import json;print(json.load(open("versions.json"))["app"])')
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+
+          python3 build-system/Make/ImportCertificates.py --path build-system/fake-codesigning/certs
+          python3 -u build-system/Make/Make.py \
+            --bazelUserRoot=/private/var/tmp/_bazel_holygram \
+            --cacheDir="$HOME/telegram-bazel-cache" \
+            build \
+            --configurationPath=build-system/holygram-configuration.json \
+            --codesigningInformationPath=build-system/fake-codesigning \
+            --configuration=release_arm64 \
+            --buildNumber="$BUILD_NUMBER"
+
+          mkdir -p build/artifacts
+          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
+            cp "$f" "build/artifacts/HolyGram-$APP_VERSION-$BUILD_NUMBER.ipa"
+          done
+          ls -la build/artifacts
+
+      - name: Save Bazel cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ~/telegram-bazel-cache
+          key: bazel-xcode${{ steps.versions.outputs.xcode }}-${{ github.run_id }}
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HolyGram-ipa
+          path: /Users/Shared/telegram-ios/build/artifacts/*.ipa
+          retention-days: 14
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}
+          name: HolyGram iOS ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
+          body: |
+            Unsigned HolyGram build for iOS. Install it with Sideloadly or AltStore, which re-sign it with your Apple ID.
+          files: /Users/Shared/telegram-ios/build/artifacts/*.ipa
