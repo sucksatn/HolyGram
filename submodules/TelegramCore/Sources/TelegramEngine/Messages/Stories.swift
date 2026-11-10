@@ -1,5 +1,6 @@
 import Foundation
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 import Postbox
 internal import TelegramApi
 
@@ -2085,6 +2086,11 @@ func _internal_markStoryAsSeen(account: Account, peerId: PeerId, id: Int32, asPi
                 return .complete()
             }
             #endif
+            
+            // MARK: HolyGram ghost mode: the author doesn't see the view.
+            if SGSimpleSettings.shared.ghostBlocksStoryViews {
+                return .complete()
+            }
             
             return account.network.request(Api.functions.stories.incrementStoryViews(peer: inputPeer, id: [id]))
             |> `catch` { _ -> Signal<Api.Bool, NoError> in

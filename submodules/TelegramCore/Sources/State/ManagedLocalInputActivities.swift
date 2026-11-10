@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 import MtProtoKit
 
@@ -142,6 +143,10 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 }
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
+    // MARK: HolyGram ghost mode: don't send "typing…", "recording…" and so on.
+    if SGSimpleSettings.shared.ghostBlocksTyping {
+        return .complete()
+    }
     return postbox.transaction { transaction -> Signal<Void, NoError> in
         if let peer = transaction.getPeer(peerId) {
             if peerId == accountPeerId {

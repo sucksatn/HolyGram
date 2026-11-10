@@ -282,3 +282,12 @@
 "Settings.NY.Style.lightning" = "Lightning";
 "Settings.NY.Notice" = "Available for a limited time only!";
 "Settings.HideAccountInNotifications" = "Hide Account in Notifications";
+
+/* HolyGram: ghost mode */
+"Settings.Ghost.Header" = "GHOST MODE";
+"Settings.Ghost.Enabled" = "Ghost Mode";
+"Settings.Ghost.HideOnline" = "Hide “Online” Status";
+"Settings.Ghost.NoReadReceipts" = "Don't Send Read Receipts";
+"Settings.Ghost.NoTyping" = "Don't Send “Typing…”";
+"Settings.Ghost.NoStoryViews" = "View Stories Anonymously";
+"Settings.Ghost.Notice" = "Messages you read stay unread for the sender.";

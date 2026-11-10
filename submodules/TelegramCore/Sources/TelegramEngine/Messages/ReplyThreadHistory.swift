@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 
 private struct DiscussionMessage {
@@ -478,11 +479,14 @@ private class ReplyThreadHistoryContextImpl {
             }
 
             if let subPeerId {
-                let signal = strongSelf.account.network.request(Api.functions.messages.readSavedHistory(parentPeer: inputPeer, peer: subPeerId, maxId: messageIndex.id.id))
+                var signal = strongSelf.account.network.request(Api.functions.messages.readSavedHistory(parentPeer: inputPeer, peer: subPeerId, maxId: messageIndex.id.id))
                 |> `catch` { _ -> Signal<Api.Bool, NoError> in
                     return .single(.boolFalse)
                 }
                 |> ignoreValues
+                if SGSimpleSettings.shared.ghostBlocksReadReceipts { // MARK: HolyGram ghost mode
+                    signal = .complete()
+                }
                 if revalidate {
                 }
                 strongSelf.readDisposable.set(signal.start())
@@ -492,6 +496,9 @@ private class ReplyThreadHistoryContextImpl {
                     return .single(.boolFalse)
                 }
                 |> ignoreValues
+                if SGSimpleSettings.shared.ghostBlocksReadReceipts { // MARK: HolyGram ghost mode
+                    signal = .complete()
+                }
                 if revalidate {
                     let validateSignal = strongSelf.account.network.request(Api.functions.messages.getDiscussionMessage(peer: inputPeer, msgId: Int32(clamping: threadId)))
                     |> map { result -> (MessageId?, Int) in

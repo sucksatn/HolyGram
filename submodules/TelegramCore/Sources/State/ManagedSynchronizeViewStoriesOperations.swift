@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 import MtProtoKit
 
@@ -120,6 +121,10 @@ func managedSynchronizeViewStoriesOperations(postbox: Postbox, network: Network,
 
 private func pushStoriesAreSeen(postbox: Postbox, network: Network, stateManager: AccountStateManager, peer: Peer, operation: SynchronizeViewStoriesOperation) -> Signal<Void, NoError> {
     guard let inputPeer = apiInputPeer(peer) else {
+        return .complete()
+    }
+    // MARK: HolyGram ghost mode: the author doesn't see the view.
+    if SGSimpleSettings.shared.ghostBlocksStoryViews {
         return .complete()
     }
     return network.request(Api.functions.stories.readStories(peer: inputPeer, maxId: operation.storyId))

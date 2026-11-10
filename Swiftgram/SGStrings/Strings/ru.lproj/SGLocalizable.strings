@@ -277,3 +277,12 @@
 "Settings.NY.Notice" = "Доступны только на ограниченное время!";
 "Settings.videoControlsInFooter" = "Кнопки видео снизу";
 "Settings.HideAccountInNotifications" = "Скрыть аккаунт в уведомлениях";
+
+/* HolyGram: ghost mode */
+"Settings.Ghost.Header" = "РЕЖИМ ПРИЗРАКА";
+"Settings.Ghost.Enabled" = "Режим призрака";
+"Settings.Ghost.HideOnline" = "Скрывать статус «в сети»";
+"Settings.Ghost.NoReadReceipts" = "Не отправлять отметки о прочтении";
+"Settings.Ghost.NoTyping" = "Не отправлять «печатает…»";
+"Settings.Ghost.NoStoryViews" = "Анонимный просмотр историй";
+"Settings.Ghost.Notice" = "Прочитанные вами сообщения остаются непрочитанными у отправителя.";

@@ -28,6 +28,7 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case search
     case trending
     case content
+    case ghost // MARK: HolyGram
     case tabs
     case folders
     case chatList
@@ -45,6 +46,12 @@ private enum SGControllerSection: Int32, SGItemListSection {
 }
 
 private enum SGBoolSetting: String {
+    // MARK: HolyGram ghost mode
+    case ghostMode
+    case ghostHideOnline
+    case ghostNoReadReceipts
+    case ghostNoTyping
+    case ghostNoStoryViews
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -168,6 +175,16 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     } else {
         id.increment(1)
     }
+    
+    // MARK: HolyGram ghost mode
+    let ghostOn = SGSimpleSettings.shared.ghostMode
+    entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
+    entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -403,6 +420,18 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.startTelescopeWithRearCam = value
         case .hideStories:
             SGSimpleSettings.shared.hideStories = value
+        // MARK: HolyGram ghost mode
+        case .ghostMode:
+            SGSimpleSettings.shared.ghostMode = value
+            simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
+        case .ghostHideOnline:
+            SGSimpleSettings.shared.ghostHideOnline = value
+        case .ghostNoReadReceipts:
+            SGSimpleSettings.shared.ghostNoReadReceipts = value
+        case .ghostNoTyping:
+            SGSimpleSettings.shared.ghostNoTyping = value
+        case .ghostNoStoryViews:
+            SGSimpleSettings.shared.ghostNoStoryViews = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

@@ -55,6 +55,11 @@ public class SGSimpleSettings {
         let tasks = [
 //            { let _ = self.allChatsFolderPositionOverride },
             { let _ = self.tabBarSearchEnabled },
+            { let _ = self.ghostMode },
+            { let _ = self.ghostHideOnline },
+            { let _ = self.ghostNoReadReceipts },
+            { let _ = self.ghostNoTyping },
+            { let _ = self.ghostNoStoryViews },
             { let _ = self.allChatsHidden },
             { let _ = self.hideTabBar },
             { let _ = self.bottomTabStyle },
@@ -107,6 +112,12 @@ public class SGSimpleSettings {
         case outgoingPhotoQuality
         case storyStealthMode
         case canUseStealthMode
+        // MARK: HolyGram ghost mode
+        case ghostMode
+        case ghostHideOnline
+        case ghostNoReadReceipts
+        case ghostNoTyping
+        case ghostNoStoryViews
         case disableSwipeToRecordStory
         case quickTranslateButton
         case outgoingLanguageTranslation
@@ -269,6 +280,11 @@ public class SGSimpleSettings {
         Keys.outgoingPhotoQuality.rawValue: 70,
         Keys.storyStealthMode.rawValue: false,
         Keys.canUseStealthMode.rawValue: true,
+        Keys.ghostMode.rawValue: false,
+        Keys.ghostHideOnline.rawValue: true,
+        Keys.ghostNoReadReceipts.rawValue: true,
+        Keys.ghostNoTyping.rawValue: true,
+        Keys.ghostNoStoryViews.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
         Keys.quickTranslateButton.rawValue: false,
         Keys.outgoingLanguageTranslation.rawValue: [:],
@@ -397,6 +413,22 @@ public class SGSimpleSettings {
     
     @UserDefault(key: Keys.canUseStealthMode.rawValue)
     public var canUseStealthMode: Bool    
+
+    // MARK: HolyGram ghost mode
+    @UserDefault(key: Keys.ghostMode.rawValue)
+    public var ghostMode: Bool
+
+    @UserDefault(key: Keys.ghostHideOnline.rawValue)
+    public var ghostHideOnline: Bool
+
+    @UserDefault(key: Keys.ghostNoReadReceipts.rawValue)
+    public var ghostNoReadReceipts: Bool
+
+    @UserDefault(key: Keys.ghostNoTyping.rawValue)
+    public var ghostNoTyping: Bool
+
+    @UserDefault(key: Keys.ghostNoStoryViews.rawValue)
+    public var ghostNoStoryViews: Bool
     
     @UserDefault(key: Keys.disableSwipeToRecordStory.rawValue)
     public var disableSwipeToRecordStory: Bool   
@@ -627,6 +659,16 @@ extension SGSimpleSettings {
     public var isStealthModeEnabled: Bool {
         return storyStealthMode && canUseStealthMode
     }
+
+    // MARK: HolyGram ghost mode
+    /// Never report "online"; the account always looks offline.
+    public var ghostBlocksOnline: Bool { ghostMode && ghostHideOnline }
+    /// Messages are marked read locally only; the sender keeps seeing them as unread.
+    public var ghostBlocksReadReceipts: Bool { ghostMode && ghostNoReadReceipts }
+    /// "typing…", "recording voice…" and similar activities are not sent.
+    public var ghostBlocksTyping: Bool { ghostMode && ghostNoTyping }
+    /// Stories are viewed without the author seeing it.
+    public var ghostBlocksStoryViews: Bool { ghostMode && ghostNoStoryViews }
     
     public static func makeOutgoingLanguageTranslationKey(accountId: Int64, peerId: Int64) -> String {
         return "\(accountId):\(peerId)"
