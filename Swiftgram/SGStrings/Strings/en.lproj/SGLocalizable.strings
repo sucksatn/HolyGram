@@ -325,3 +325,4 @@
 "Settings.HGPro.DeviceCopied" = "Device code copied";
 "Settings.HGPro.DeviceNotice" = "Pro belongs to this iPhone and works in all its accounts. Tap the code to copy it.";
 "Settings.HGPrivacy.HideBlocked" = "Hide Blocked Users in Groups";
+"Settings.Folders.HideBadges" = "Hide Unread Counters on Folders";

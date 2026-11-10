@@ -130,6 +130,7 @@ public class SGSimpleSettings {
         case hidePaidFeatureRows
         case confirmStickerSend
         case hideBlockedUsersMessages
+        case hideFolderBadges
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -310,6 +311,7 @@ public class SGSimpleSettings {
         Keys.hidePaidFeatureRows.rawValue: false,
         Keys.confirmStickerSend.rawValue: false,
         Keys.hideBlockedUsersMessages.rawValue: false,
+        Keys.hideFolderBadges.rawValue: false,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -495,6 +497,10 @@ public class SGSimpleSettings {
     /// Hide messages of blocked users in groups.
     @UserDefault(key: Keys.hideBlockedUsersMessages.rawValue)
     public var hideBlockedUsersMessages: Bool
+
+    /// Hide unread counters on chat folder tabs.
+    @UserDefault(key: Keys.hideFolderBadges.rawValue)
+    public var hideFolderBadges: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool

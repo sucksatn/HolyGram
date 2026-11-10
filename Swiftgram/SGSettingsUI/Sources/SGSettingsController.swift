@@ -66,6 +66,7 @@ private enum SGBoolSetting: String {
     case confirmStickerSend
     case confirmVoiceSend
     case hideBlockedUsersMessages
+    case hideFolderBadges
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -282,6 +283,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     #if DEBUG
 //    entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsFolderPositionOverride, text: i18n("Settings.Folders.AllChatsPlacement", lang), value: i18n("Settings.Folders.AllChatsPlacement.\(SGSimpleSettings.shared.allChatsFolderPositionOverride)", lang), enabled: true))
     #endif
+    entries.append(.toggle(id: id.count, section: .folders, settingName: .hideFolderBadges, value: SGSimpleSettings.shared.hideFolderBadges, text: i18n("Settings.Folders.HideBadges", lang), enabled: true)) // MARK: HolyGram
     entries.append(.toggle(id: id.count, section: .folders, settingName: .compactFolderNames, value: SGSimpleSettings.shared.compactFolderNames, text: i18n("Settings.Folders.CompactNames", lang), enabled: true))
     entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsTitleLengthOverride, text: i18n("Settings.Folders.AllChatsTitle", lang), value: i18n("Settings.Folders.AllChatsTitle.\(SGSimpleSettings.shared.allChatsTitleLengthOverride)", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .folders, settingName: .rememberLastFolder, value: SGSimpleSettings.shared.rememberLastFolder, text: i18n("Settings.Folders.RememberLast", lang), enabled: true))
@@ -540,6 +542,9 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.confirmVoiceSend = value
         case .hideBlockedUsersMessages:
             SGSimpleSettings.shared.hideBlockedUsersMessages = value
+        case .hideFolderBadges:
+            SGSimpleSettings.shared.hideFolderBadges = value
+            askForRestart?()
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:
