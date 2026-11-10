@@ -6947,6 +6947,7 @@ private final class ChatListLocationContext {
     var leftButton: NavigationBarComponent.Button?
     var rightButton: NavigationBarComponent.Button?
     var settingsButton: NavigationBarComponent.Button? // MARK: Swiftgram
+    var ghostButton: NavigationBarComponent.Button? // MARK: HolyGram
     var proxyButton: NavigationBarComponent.Button?
     var storyButton: NavigationBarComponent.Button?
     
@@ -6955,6 +6956,11 @@ private final class ChatListLocationContext {
         // MARK: Swiftgram
         if let settingsButton = self.settingsButton {
             result.append(settingsButton)
+        }
+        //
+        // MARK: HolyGram
+        if let ghostButton = self.ghostButton {
+            result.append(ghostButton)
         }
         //
         if let rightButton = self.rightButton {
@@ -7012,7 +7018,14 @@ private final class ChatListLocationContext {
         })
         
         // MARK: Swiftgram
-        let hideStoriesSignal = sgSimpleSettingsBoolSignal(.hideStories, defaultValue: false)
+        // MARK: HolyGram: also refresh the header when ghost mode is toggled
+        let hideStoriesSignal = combineLatest(
+            sgSimpleSettingsBoolSignal(.hideStories, defaultValue: false),
+            sgSimpleSettingsBoolSignal(.ghostMode, defaultValue: false)
+        )
+        |> map { hideStories, _ -> Bool in
+            return hideStories
+        }
         //
         
         let passcode = context.sharedContext.accountManager.accessChallengeData()
@@ -7490,6 +7503,34 @@ private final class ChatListLocationContext {
                     )
                 } else {
                     self.settingsButton = nil
+                }
+                //
+                
+                // MARK: HolyGram: ghost mode quick toggle
+                let ghostModeOn = SGSimpleSettings.shared.ghostMode
+                if let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
+                    self.ghostButton = NavigationBarComponent.Button(id: "holygram_ghost",
+                        content: .image(ghostImage),
+                        tint: .generic,
+                        action: { [weak self] _ in
+                            guard let self, let parentController = self.parentController else {
+                                return
+                            }
+                            let enabled = !SGSimpleSettings.shared.ghostMode
+                            SGSimpleSettings.shared.ghostMode = enabled
+                            let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                            let isRussian = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+                            let text: String
+                            if enabled {
+                                text = isRussian ? "Режим призрака включён" : "Ghost mode is on"
+                            } else {
+                                text = isRussian ? "Режим призрака выключен" : "Ghost mode is off"
+                            }
+                            parentController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .window(.root))
+                        }
+                    )
+                } else {
+                    self.ghostButton = nil
                 }
                 //
                 
