@@ -484,7 +484,7 @@ private class ReplyThreadHistoryContextImpl {
                     return .single(.boolFalse)
                 }
                 |> ignoreValues
-                if SGSimpleSettings.shared.ghostBlocksReadReceipts { // MARK: HolyGram ghost mode
+                if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) { // MARK: HolyGram ghost mode
                     signal = .complete()
                 }
                 if revalidate {
@@ -496,7 +496,7 @@ private class ReplyThreadHistoryContextImpl {
                     return .single(.boolFalse)
                 }
                 |> ignoreValues
-                if SGSimpleSettings.shared.ghostBlocksReadReceipts { // MARK: HolyGram ghost mode
+                if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) { // MARK: HolyGram ghost mode
                     signal = .complete()
                 }
                 if revalidate {

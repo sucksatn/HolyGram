@@ -122,6 +122,7 @@ public class SGSimpleSettings {
         case ghostNoTyping
         case ghostNoStoryViews
         case ghostReadOnReply
+        case ghostReadExceptions
         case hideInAppSwitcher
         case hideSponsoredMessages
         case keepSelfDestructingMedia
@@ -300,6 +301,7 @@ public class SGSimpleSettings {
         Keys.ghostNoTyping.rawValue: true,
         Keys.ghostNoStoryViews.rawValue: true,
         Keys.ghostReadOnReply.rawValue: true,
+        Keys.ghostReadExceptions.rawValue: [String](),
         Keys.hideInAppSwitcher.rawValue: false,
         Keys.hideSponsoredMessages.rawValue: true,
         Keys.keepSelfDestructingMedia.rawValue: false,
@@ -458,6 +460,10 @@ public class SGSimpleSettings {
     /// Send the read receipt for a chat when replying in it, even in ghost mode.
     @UserDefault(key: Keys.ghostReadOnReply.rawValue)
     public var ghostReadOnReply: Bool
+
+    /// Chats (peer ids) where read receipts are sent even in ghost mode.
+    @UserDefault(key: Keys.ghostReadExceptions.rawValue)
+    public var ghostReadExceptions: [String]
 
     // MARK: HolyGram privacy
     /// Blur the app in the app switcher.
@@ -743,6 +749,20 @@ extension SGSimpleSettings {
     public var ghostBlocksOnline: Bool { ghostActive && ghostHideOnline }
     /// Messages are marked read locally only; the sender keeps seeing them as unread.
     public var ghostBlocksReadReceipts: Bool { ghostActive && ghostNoReadReceipts }
+    /// Same, except in chats the user excluded from ghost mode.
+    public func ghostBlocksReadReceiptsInChat(_ peerIdValue: Int64) -> Bool {
+        return ghostBlocksReadReceipts && !ghostReadExceptions.contains(String(peerIdValue))
+    }
+    public func isGhostReadException(_ peerIdValue: Int64) -> Bool {
+        return ghostReadExceptions.contains(String(peerIdValue))
+    }
+    public func setGhostReadException(_ peerIdValue: Int64, _ enabled: Bool) {
+        var list = ghostReadExceptions.filter { $0 != String(peerIdValue) }
+        if enabled {
+            list.append(String(peerIdValue))
+        }
+        ghostReadExceptions = list
+    }
     /// "typing…", "recording voice…" and similar activities are not sent.
     public var ghostBlocksTyping: Bool { ghostActive && ghostNoTyping }
     /// Stories are viewed without the author seeing it.
