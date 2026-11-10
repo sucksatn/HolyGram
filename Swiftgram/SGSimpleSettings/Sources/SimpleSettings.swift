@@ -125,6 +125,7 @@ public class SGSimpleSettings {
         case hideInAppSwitcher
         case hideSponsoredMessages
         case keepSelfDestructingMedia
+        case streamerMode
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -299,6 +300,7 @@ public class SGSimpleSettings {
         Keys.hideInAppSwitcher.rawValue: false,
         Keys.hideSponsoredMessages.rawValue: true,
         Keys.keepSelfDestructingMedia.rawValue: false,
+        Keys.streamerMode.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -463,6 +465,10 @@ public class SGSimpleSettings {
     /// Self-destructing photos and videos in cloud chats stay viewable after their timer.
     @UserDefault(key: Keys.keepSelfDestructingMedia.rawValue)
     public var keepSelfDestructingMedia: Bool
+
+    /// Hide the app from screenshots, screen recordings and screen sharing.
+    @UserDefault(key: Keys.streamerMode.rawValue)
+    public var streamerMode: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

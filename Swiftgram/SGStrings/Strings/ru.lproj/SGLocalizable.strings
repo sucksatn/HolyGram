@@ -302,3 +302,5 @@
 "Settings.HGPrivacy.HideInAppSwitcher" = "Размывать в списке приложений";
 "Settings.HGPrivacy.HideSponsored" = "Скрывать рекламу в каналах";
 "Settings.MessageHistory.KeepSelfDestructing" = "Сохранять исчезающие фото и видео";
+"Settings.HGPrivacy.StreamerMode" = "Режим стримера";
+"Settings.HGPrivacy.Notice" = "Режим стримера скрывает HolyGram на скриншотах, записи экрана и при демонстрации экрана.";

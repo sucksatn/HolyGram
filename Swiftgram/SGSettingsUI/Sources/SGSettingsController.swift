@@ -60,6 +60,7 @@ private enum SGBoolSetting: String {
     case keepSelfDestructingMedia
     case hideInAppSwitcher
     case hideSponsoredMessages
+    case streamerMode
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -204,7 +205,9 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode, text: i18n("Settings.HGPrivacy.StreamerMode", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
+    entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -466,6 +469,9 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.hideInAppSwitcher = value
         case .hideSponsoredMessages:
             SGSimpleSettings.shared.hideSponsoredMessages = value
+        case .streamerMode:
+            SGSimpleSettings.shared.streamerMode = value
+            askForRestart?()
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

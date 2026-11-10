@@ -307,3 +307,5 @@
 "Settings.HGPrivacy.HideInAppSwitcher" = "Blur in App Switcher";
 "Settings.HGPrivacy.HideSponsored" = "Hide Sponsored Messages";
 "Settings.MessageHistory.KeepSelfDestructing" = "Keep Self-Destructing Media";
+"Settings.HGPrivacy.StreamerMode" = "Streamer Mode";
+"Settings.HGPrivacy.Notice" = "Streamer Mode hides HolyGram from screenshots, screen recordings and screen sharing.";
