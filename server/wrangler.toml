@@ -1,0 +1,14 @@
+name = "holygram-pro"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "holygram-pro"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+
+# Secrets (set with `npx wrangler secret put NAME`, never commit them):
+#   BOT_TOKEN       token from @BotFather
+#   SIGNING_KEY     private key from `node tools/genkey.mjs`
+#   WEBHOOK_SECRET  any random string, also passed to setWebhook
+#   ADMIN_IDS       your Telegram user id(s), comma separated
