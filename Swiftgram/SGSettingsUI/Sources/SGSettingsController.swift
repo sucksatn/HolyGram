@@ -32,6 +32,9 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case ghost // MARK: HolyGram
     case messageHistory // MARK: HolyGram
     case holyGramPrivacy // MARK: HolyGram
+    case holyGramMenus // MARK: HolyGram
+    case holyGramTools // MARK: HolyGram
+    case holyGramNav // MARK: HolyGram
     case tabs
     case folders
     case chatList
@@ -49,6 +52,18 @@ private enum SGControllerSection: Int32, SGItemListSection {
 }
 
 private enum SGBoolSetting: String {
+    case hgShowGhostButton
+    case menuGhostException
+    case menuHideChat
+    case menuLockChat
+    case menuSilentChat
+    case menuCopyId
+    case menuDeleteMine
+    case menuBookmark
+    case menuRemind
+    case menuChatStats
+    case menuSaveAllMedia
+    case menuEditHistory
     // MARK: HolyGram ghost mode
     case ghostMode
     case ghostHideOnline
@@ -151,6 +166,12 @@ private enum SGSliderSetting: String {
 
 private enum SGDisclosureLink: String {
     case holyGramProContact // MARK: HolyGram
+    case pageGhost // MARK: HolyGram
+    case pageHistory // MARK: HolyGram
+    case pagePrivacy // MARK: HolyGram
+    case pageMenus // MARK: HolyGram
+    case pageTools // MARK: HolyGram
+    case pageSwiftgram // MARK: HolyGram
     case holyGramHiddenChats // MARK: HolyGram
     case holyGramDeletedMessages // MARK: HolyGram
     case holyGramBookmarks // MARK: HolyGram
@@ -170,6 +191,57 @@ private struct SGSettingsControllerState: Equatable {
 }
 
 private typealias SGControllerEntry = SGItemListUIEntry<SGControllerSection, SGBoolSetting, SGSliderSetting, SGOneFromManySetting, SGDisclosureLink, AnyHashable>
+
+// MARK: HolyGram: the settings are split into a hub and sub-pages
+public enum HolyGramSettingsPage: String {
+    case root
+    case ghost
+    case history
+    case privacy
+    case menus
+    case tools
+    case swiftgram
+
+    fileprivate var sections: Set<SGControllerSection>? {
+        switch self {
+        case .root:
+            return [.holyGramPro, .holyGramNav]
+        case .ghost:
+            return [.ghost]
+        case .history:
+            return [.messageHistory]
+        case .privacy:
+            return [.holyGramPrivacy]
+        case .menus:
+            return [.holyGramMenus]
+        case .tools:
+            return [.holyGramTools]
+        case .swiftgram:
+            return nil
+        }
+    }
+
+    fileprivate func title(_ ru: Bool) -> String {
+        switch self {
+        case .root:
+            return "HolyGram"
+        case .ghost:
+            return ru ? "Режим призрака" : "Ghost Mode"
+        case .history:
+            return ru ? "История сообщений" : "Message History"
+        case .privacy:
+            return ru ? "Конфиденциальность" : "Privacy"
+        case .menus:
+            return ru ? "Меню чатов и сообщений" : "Chat & Message Menus"
+        case .tools:
+            return ru ? "Инструменты" : "Tools"
+        case .swiftgram:
+            return ru ? "Функции Swiftgram" : "Swiftgram Features"
+        }
+    }
+}
+
+private let holyGramOwnSections: Set<SGControllerSection> = [.holyGramPro, .holyGramNav, .ghost, .messageHistory, .holyGramPrivacy, .holyGramMenus, .holyGramTools]
 
 // MARK: HolyGram: the view controller to present plain UIKit alerts from
 private func hgTopViewController() -> UIViewController? {
@@ -200,7 +272,7 @@ private func holyGramProStatusText(lang: String) -> String {
     return i18n("Settings.HGPro.Inactive", lang) + "\n" + note
 }
 
-private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState) -> [SGControllerEntry] {
+private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState, page: HolyGramSettingsPage) -> [SGControllerEntry] {
     
     let lang = presentationData.strings.baseLanguageCode
     let strings = presentationData.strings
@@ -232,66 +304,108 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     let pro = HolyGramPro.shared
     let hasPro = SGSimpleSettings.shared.hgPro
     let lock = hasPro ? "" : " 🔒"
-    let ghostAvailable = SGSimpleSettings.shared.hgGhostAvailable
-    entries.append(.header(id: id.count, section: .holyGramPro, text: "HOLYGRAM PRO", badge: nil))
-    entries.append(.action(id: id.count, section: .holyGramPro, actionType: AnyHashable("hgCopyDeviceCode"), text: i18n("Settings.HGPro.Device", lang, pro.displayDeviceCode), kind: .generic))
+    let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+    let settings = SGSimpleSettings.shared
+    let ghostAvailable = settings.hgGhostAvailable
+    entries.append(.header(id: id.count, section: .holyGramPro, text: "💎 HOLYGRAM PRO", badge: nil))
     entries.append(.notice(id: id.count, section: .holyGramPro, text: holyGramProStatusText(lang: lang)))
+    entries.append(.action(id: id.count, section: .holyGramPro, actionType: AnyHashable("hgCopyDeviceCode"), text: i18n("Settings.HGPro.Device", lang, pro.displayDeviceCode), kind: .generic))
     if !HolyGramPro.botUsername.isEmpty {
-        entries.append(.disclosure(id: id.count, section: .holyGramPro, link: .holyGramProContact, text: i18n(hasPro && pro.isConfigured ? "Settings.HGPro.Manage" : "Settings.HGPro.Get", lang)))
+        entries.append(.disclosure(id: id.count, section: .holyGramPro, link: .holyGramProContact, text: (hasPro && pro.isConfigured ? "⚙️ " : "💎 ") + i18n(hasPro && pro.isConfigured ? "Settings.HGPro.Manage" : "Settings.HGPro.Get", lang)))
     } else {
         id.increment(1)
     }
-    
-    // MARK: HolyGram ghost mode (can be switched off for everyone from the admin bot)
+
+    // Hub: one row per page, with a short state
+    entries.append(.header(id: id.count, section: .holyGramNav, text: ru ? "ФУНКЦИИ HOLYGRAM" : "HOLYGRAM FEATURES", badge: nil))
     if ghostAvailable {
-        let ghostOn = SGSimpleSettings.shared.ghostMode && hasPro
+        entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageGhost, text: "👻  " + (ru ? "Режим призрака" : "Ghost Mode")))
+    } else {
+        id.increment(1)
+    }
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageHistory, text: "🗂  " + (ru ? "История сообщений" : "Message History")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pagePrivacy, text: "🔐  " + (ru ? "Конфиденциальность" : "Privacy")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageMenus, text: "💬  " + (ru ? "Меню чатов и сообщений" : "Chat & Message Menus")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageTools, text: "🧰  " + (ru ? "Инструменты" : "Tools")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageSwiftgram, text: "⚙️  " + (ru ? "Функции Swiftgram" : "Swiftgram Features")))
+    entries.append(.notice(id: id.count, section: .holyGramNav, text: ru ? "Функции с 🔒 работают с HolyGram Pro." : "Features marked 🔒 need HolyGram Pro."))
+
+    // 👻 Ghost mode (can be switched off for everyone from the admin bot)
+    if ghostAvailable {
+        let ghostOn = settings.ghostMode && hasPro
         entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang) + lock, enabled: hasPro))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: SGSimpleSettings.shared.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && SGSimpleSettings.shared.ghostNoReadReceipts))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
-        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
-        entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: "👻  " + i18n("Settings.Ghost.Enabled", lang) + lock, enabled: hasPro))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: settings.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: settings.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: settings.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && settings.ghostNoReadReceipts))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: settings.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: settings.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .hgShowGhostButton, value: settings.hgShowGhostButton, text: ru ? "Кнопка-глаз над чатами" : "Eye Button Above Chats", enabled: hasPro))
+        entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang) + (ru ? "\n\nИсключения: удерживайте чат в списке → «Отправлять прочтение здесь».\nБыстрые команды: holygram://sg/ghost, ghost_on, ghost_off." : "\n\nExceptions: long-press a chat → Send Read Receipts Here.\nShortcuts: holygram://sg/ghost, ghost_on, ghost_off.")))
     } else {
-        id.increment(8)
+        id.increment(10)
     }
-    
+
+    // 🗂 Message history
     entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
-    if SGSimpleSettings.shared.hgDeletedAvailable {
-        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages && hasPro, text: i18n("Settings.MessageHistory.SaveDeleted", lang) + lock, enabled: hasPro))
+    if settings.hgDeletedAvailable {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: settings.saveDeletedMessages && hasPro, text: "🗑  " + i18n("Settings.MessageHistory.SaveDeleted", lang) + lock, enabled: hasPro))
     } else {
         id.increment(1)
     }
-    if SGSimpleSettings.shared.hgEditsAvailable {
-        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory && hasPro, text: i18n("Settings.MessageHistory.SaveEdits", lang) + lock, enabled: hasPro))
+    if settings.hgEditsAvailable {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: settings.saveEditHistory && hasPro, text: "✏️  " + i18n("Settings.MessageHistory.SaveEdits", lang) + lock, enabled: hasPro))
     } else {
         id.increment(1)
     }
-    if SGSimpleSettings.shared.hgSelfDestructAvailable {
-        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia && hasPro, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang) + lock, enabled: hasPro))
+    if settings.hgSelfDestructAvailable {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: settings.keepSelfDestructingMedia && hasPro, text: "⏱  " + i18n("Settings.MessageHistory.KeepSelfDestructing", lang) + lock, enabled: hasPro))
     } else {
         id.increment(1)
     }
-    let highlight = SGSimpleSettings.shared.highlightKeywords.joined(separator: ", ")
-    entries.append(.action(id: id.count, section: .messageHistory, actionType: AnyHashable("hgEditHighlight"), text: i18n("Settings.MessageHistory.Highlight", lang) + lock + (highlight.isEmpty ? "" : ": " + highlight), kind: .generic))
-    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramMentions, text: i18n("Settings.MessageHistory.Mentions", lang)))
-    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDrafts, text: i18n("Settings.MessageHistory.Drafts", lang)))
-    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramBookmarks, text: i18n("Settings.MessageHistory.Bookmarks", lang) + lock))
-    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDeletedMessages, text: i18n("Settings.MessageHistory.Browse", lang) + lock))
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
-    
+
+    // 🔐 Privacy
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
-    entries.append(.disclosure(id: id.count, section: .holyGramPrivacy, link: .holyGramHiddenChats, text: i18n("Settings.HGPrivacy.HiddenChats", lang) + (hasPro ? (SGSimpleSettings.shared.hiddenChats.isEmpty ? "" : " (\(SGSimpleSettings.shared.hiddenChats.count))") : lock)))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
-    entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgArchiveInactive"), text: i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: SGSimpleSettings.shared.hideSimilarChannels, text: i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher && hasPro, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: settings.streamerMode && hasPro, text: "🎥  " + i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: settings.hideInAppSwitcher && hasPro, text: "🌫  " + i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: settings.hideSponsoredMessages && hasPro, text: "🚫  " + i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: settings.hideBlockedUsersMessages && hasPro, text: "🙈  " + i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: settings.hideSimilarChannels, text: "📺  " + i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: settings.hidePaidFeatureRows, text: "⭐️  " + i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideFolderBadges, value: settings.hideFolderBadges, text: "🔢  " + i18n("Settings.Folders.HideBadges", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .confirmStickerSend, value: settings.confirmStickerSend && hasPro, text: "🧸  " + i18n("Settings.HG.ConfirmSticker", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .confirmVoiceSend, value: settings.confirmVoiceSend && hasPro, text: "🎙  " + i18n("Settings.HG.ConfirmVoice", lang) + lock, enabled: hasPro))
     entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
-    
+
+    // 💬 Which HolyGram items appear in menus
+    entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ ЧАТА (ДОЛГОЕ НАЖАТИЕ НА ЧАТ)" : "CHAT MENU (LONG-PRESS A CHAT)", badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuGhostException, value: settings.menuGhostException, text: ru ? "👁  Отправлять прочтение здесь" : "👁  Send Read Receipts Here", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuHideChat, value: settings.menuHideChat, text: ru ? "🙈  Скрыть чат" : "🙈  Hide Chat", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuLockChat, value: settings.menuLockChat, text: ru ? "🔒  Закрыть Face ID" : "🔒  Lock with Face ID", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSilentChat, value: settings.menuSilentChat, text: ru ? "🔕  Отправлять без звука" : "🔕  Always Send Silently", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyId, value: settings.menuCopyId, text: ru ? "#️⃣  Скопировать ID и ссылку" : "#️⃣  Copy ID and Link", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuDeleteMine, value: settings.menuDeleteMine, text: ru ? "🗑  Удалить все мои сообщения" : "🗑  Delete All My Messages", enabled: true))
+    entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ СООБЩЕНИЯ (ДОЛГОЕ НАЖАТИЕ НА СООБЩЕНИЕ)" : "MESSAGE MENU (LONG-PRESS A MESSAGE)", badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .contextShowRepeat, value: settings.contextShowRepeat, text: "➕  +1", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuEditHistory, value: settings.menuEditHistory, text: ru ? "✏️  История правок" : "✏️  Edit History", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuBookmark, value: settings.menuBookmark, text: ru ? "🔖  В закладки" : "🔖  Bookmark", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuRemind, value: settings.menuRemind, text: ru ? "⏰  Напомнить" : "⏰  Remind Me", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatStats, value: settings.menuChatStats, text: ru ? "📊  Статистика чата" : "📊  Chat Statistics", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSaveAllMedia, value: settings.menuSaveAllMedia, text: ru ? "📥  Сохранить все фото и видео" : "📥  Save All Photos & Videos", enabled: true))
+    entries.append(.notice(id: id.count, section: .holyGramMenus, text: ru ? "Выключенные пункты не показываются в меню. Функции Pro появляются в меню только с HolyGram Pro." : "Turned-off items don't appear in menus. Pro items appear only with HolyGram Pro."))
+
+    // 🧰 Tools
+    entries.append(.header(id: id.count, section: .holyGramTools, text: ru ? "ИНСТРУМЕНТЫ" : "TOOLS", badge: nil))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramDeletedMessages, text: "🗑  " + i18n("Settings.MessageHistory.Browse", lang) + lock))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramBookmarks, text: "🔖  " + i18n("Settings.MessageHistory.Bookmarks", lang) + lock))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramDrafts, text: "📝  " + i18n("Settings.MessageHistory.Drafts", lang)))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramMentions, text: "@  " + i18n("Settings.MessageHistory.Mentions", lang)))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramHiddenChats, text: "🙈  " + i18n("Settings.HGPrivacy.HiddenChats", lang) + (hasPro ? (settings.hiddenChats.isEmpty ? "" : " (\(settings.hiddenChats.count))") : lock)))
+    let highlight = settings.highlightKeywords.joined(separator: ", ")
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgEditHighlight"), text: "🖍  " + i18n("Settings.MessageHistory.Highlight", lang) + lock + (highlight.isEmpty ? "" : ": " + highlight), kind: .generic))
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgArchiveInactive"), text: "📦  " + i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
+
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .showContactsTab, value: callListSettings.showContactsTab, text: i18n("Settings.Tabs.ShowContacts", lang), enabled: !SGSimpleSettings.shared.hideTabBar))
@@ -307,7 +421,6 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     #if DEBUG
 //    entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsFolderPositionOverride, text: i18n("Settings.Folders.AllChatsPlacement", lang), value: i18n("Settings.Folders.AllChatsPlacement.\(SGSimpleSettings.shared.allChatsFolderPositionOverride)", lang), enabled: true))
     #endif
-    entries.append(.toggle(id: id.count, section: .folders, settingName: .hideFolderBadges, value: SGSimpleSettings.shared.hideFolderBadges, text: i18n("Settings.Folders.HideBadges", lang), enabled: true)) // MARK: HolyGram
     entries.append(.toggle(id: id.count, section: .folders, settingName: .compactFolderNames, value: SGSimpleSettings.shared.compactFolderNames, text: i18n("Settings.Folders.CompactNames", lang), enabled: true))
     entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsTitleLengthOverride, text: i18n("Settings.Folders.AllChatsTitle", lang), value: i18n("Settings.Folders.AllChatsTitle.\(SGSimpleSettings.shared.allChatsTitleLengthOverride)", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .folders, settingName: .rememberLastFolder, value: SGSimpleSettings.shared.rememberLastFolder, text: i18n("Settings.Folders.RememberLast", lang), enabled: true))
@@ -326,8 +439,6 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowRegDate.Notice", lang)))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .showCreationDate, value: SGSimpleSettings.shared.showCreationDate, text: i18n("Settings.ShowCreationDate", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowCreationDate.Notice", lang)))
-    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmStickerSend, value: SGSimpleSettings.shared.confirmStickerSend, text: i18n("Settings.HG.ConfirmSticker", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmVoiceSend, value: SGSimpleSettings.shared.confirmVoiceSend, text: i18n("Settings.HG.ConfirmVoice", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmCalls, value: SGSimpleSettings.shared.confirmCalls, text: i18n("Settings.CallConfirmation", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.CallConfirmation.Notice", lang)))
     
@@ -398,7 +509,6 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowSaveMedia, value: SGSimpleSettings.shared.contextShowSaveMedia, text: strings.Conversation_SaveToFiles, enabled: true))
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowMessageReplies, value: SGSimpleSettings.shared.contextShowMessageReplies, text: strings.Conversation_ContextViewThread, enabled: true))
     entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowJson, value: SGSimpleSettings.shared.contextShowJson, text: "JSON", enabled: true))
-    entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowRepeat, value: SGSimpleSettings.shared.contextShowRepeat, text: "+1", enabled: true)) // MARK: HolyGram
     /* entries.append(.toggle(id: id.count, section: .contextMenu, settingName: .contextShowRestrict, value: SGSimpleSettings.shared.contextShowRestrict, text: strings.Conversation_ContextMenuBan)) */
     
     entries.append(.header(id: id.count, section: .accountColors, text: i18n("Settings.CustomColors.Header", lang), badge: nil))
@@ -459,10 +569,23 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.notice(id: id.count, section: .other, text: i18n("Settings.HidePhoneInSettingsUI.Notice", lang)))
     entries.append(.toggle(id: id.count, section: .other, settingName: .hideAccountInNotifications, value: SGSimpleSettings.shared.hideAccountInNotifications, text: i18n("Settings.HideAccountInNotifications", lang), enabled: true))
     
-    return filterSGItemListUIEntrires(entries: entries, by: state.searchQuery)
+    // MARK: HolyGram: keep only this page's sections
+    let pageEntries = entries.filter { entry in
+        guard let section = SGControllerSection(rawValue: entry.section) else {
+            return false
+        }
+        if let sections = page.sections {
+            return sections.contains(section)
+        }
+        return !holyGramOwnSections.contains(section)
+    }
+    if page != .swiftgram {
+        return pageEntries
+    }
+    return filterSGItemListUIEntrires(entries: pageEntries, by: state.searchQuery)
 }
 
-public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int? = nil*/) -> ViewController {
+public func sgSettingsController(context: AccountContext, page: HolyGramSettingsPage = .root/*, focusOnItemTag: Int? = nil*/) -> ViewController {
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
 //    var getRootControllerImpl: (() -> UIViewController?)?
@@ -553,6 +676,30 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.keepSelfDestructingMedia = value
         case .hideInAppSwitcher:
             SGSimpleSettings.shared.hideInAppSwitcher = value
+        case .hgShowGhostButton:
+            SGSimpleSettings.shared.hgShowGhostButton = value
+        case .menuGhostException:
+            SGSimpleSettings.shared.menuGhostException = value
+        case .menuHideChat:
+            SGSimpleSettings.shared.menuHideChat = value
+        case .menuLockChat:
+            SGSimpleSettings.shared.menuLockChat = value
+        case .menuSilentChat:
+            SGSimpleSettings.shared.menuSilentChat = value
+        case .menuCopyId:
+            SGSimpleSettings.shared.menuCopyId = value
+        case .menuDeleteMine:
+            SGSimpleSettings.shared.menuDeleteMine = value
+        case .menuBookmark:
+            SGSimpleSettings.shared.menuBookmark = value
+        case .menuRemind:
+            SGSimpleSettings.shared.menuRemind = value
+        case .menuChatStats:
+            SGSimpleSettings.shared.menuChatStats = value
+        case .menuSaveAllMedia:
+            SGSimpleSettings.shared.menuSaveAllMedia = value
+        case .menuEditHistory:
+            SGSimpleSettings.shared.menuEditHistory = value
         case .hideSponsoredMessages:
             SGSimpleSettings.shared.hideSponsoredMessages = value
         case .streamerMode:
@@ -888,6 +1035,18 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
                     }
                     pushControllerImpl?(holyGramHiddenChatsController(context: context))
                 })
+            case .pageGhost:
+                pushControllerImpl?(sgSettingsController(context: context, page: .ghost))
+            case .pageHistory:
+                pushControllerImpl?(sgSettingsController(context: context, page: .history))
+            case .pagePrivacy:
+                pushControllerImpl?(sgSettingsController(context: context, page: .privacy))
+            case .pageMenus:
+                pushControllerImpl?(sgSettingsController(context: context, page: .menus))
+            case .pageTools:
+                pushControllerImpl?(sgSettingsController(context: context, page: .tools))
+            case .pageSwiftgram:
+                pushControllerImpl?(sgSettingsController(context: context, page: .swiftgram))
             case .holyGramProContact:
                 context.sharedContext.applicationBindings.openUrl(HolyGramPro.shared.botRequestUrl)
             case .languageSettings:
@@ -1003,9 +1162,9 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         let callListSettings: CallListSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? CallListSettings.defaultSettings
         let experimentalUISettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
-        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state)
+        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state, page: page)
         
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("HolyGram"), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(page.title(presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk"))), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         
         // TODO(swiftgram): focusOnItemTag support
         /* var index = 0

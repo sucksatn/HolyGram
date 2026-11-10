@@ -7044,9 +7044,10 @@ private final class ChatListLocationContext {
         // MARK: HolyGram: also refresh the header when ghost mode is toggled
         let hideStoriesSignal = combineLatest(
             sgSimpleSettingsBoolSignal(.hideStories, defaultValue: false),
-            sgSimpleSettingsBoolSignal(.ghostMode, defaultValue: false)
+            sgSimpleSettingsBoolSignal(.ghostMode, defaultValue: false),
+            sgSimpleSettingsBoolSignal(.hgShowGhostButton, defaultValue: true)
         )
-        |> map { hideStories, _ -> Bool in
+        |> map { hideStories, _, _ -> Bool in
             return hideStories
         }
         //
@@ -7531,7 +7532,7 @@ private final class ChatListLocationContext {
                 
                 // MARK: HolyGram: ghost mode quick toggle
                 let ghostModeOn = SGSimpleSettings.shared.ghostMode && SGSimpleSettings.shared.hgPro
-                if SGSimpleSettings.shared.hgGhostAvailable, let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
+                if SGSimpleSettings.shared.hgGhostAvailable && SGSimpleSettings.shared.hgShowGhostButton, let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
                     self.ghostButton = NavigationBarComponent.Button(id: "holygram_ghost",
                         content: .image(ghostImage),
                         tint: .generic,

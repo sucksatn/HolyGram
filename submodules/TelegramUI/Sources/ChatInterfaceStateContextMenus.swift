@@ -1593,12 +1593,12 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             actions.append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.hgPro && message.id.namespace == Namespaces.Message.Cloud {
-            actions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
-            actions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
-            actions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
-            actions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            if SGSimpleSettings.shared.menuBookmark { actions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuRemind { actions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuChatStats { actions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuSaveAllMedia { actions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
         }
-        if !message.holyGramEditHistory.isEmpty {
+        if SGSimpleSettings.shared.menuEditHistory && !message.holyGramEditHistory.isEmpty {
             actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         //
