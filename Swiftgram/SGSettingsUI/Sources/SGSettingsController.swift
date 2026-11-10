@@ -215,7 +215,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     let pro = HolyGramPro.shared
     let hasPro = SGSimpleSettings.shared.hgPro
     let lock = hasPro ? "" : " 🔒"
-    let isStore = HolyGramEdition.current == .store
+    let ghostAvailable = SGSimpleSettings.shared.hgGhostAvailable
     entries.append(.header(id: id.count, section: .holyGramPro, text: "HOLYGRAM PRO", badge: nil))
     entries.append(.notice(id: id.count, section: .holyGramPro, text: holyGramProStatusText(lang: lang, userId: holyGramUserId)))
     if !HolyGramPro.botUsername.isEmpty {
@@ -224,8 +224,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
         id.increment(1)
     }
     
-    // MARK: HolyGram ghost mode (not in the App Store edition, see HolyGramEdition)
-    if !isStore {
+    // MARK: HolyGram ghost mode (can be switched off for everyone from the admin bot)
+    if ghostAvailable {
         let ghostOn = SGSimpleSettings.shared.ghostMode && hasPro
         entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang) + lock, enabled: hasPro))
@@ -240,9 +240,17 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     }
     
     entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
-    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages && hasPro, text: i18n("Settings.MessageHistory.SaveDeleted", lang) + lock, enabled: hasPro))
-    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory && hasPro, text: i18n("Settings.MessageHistory.SaveEdits", lang) + lock, enabled: hasPro))
-    if !isStore {
+    if SGSimpleSettings.shared.hgDeletedAvailable {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages && hasPro, text: i18n("Settings.MessageHistory.SaveDeleted", lang) + lock, enabled: hasPro))
+    } else {
+        id.increment(1)
+    }
+    if SGSimpleSettings.shared.hgEditsAvailable {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory && hasPro, text: i18n("Settings.MessageHistory.SaveEdits", lang) + lock, enabled: hasPro))
+    } else {
+        id.increment(1)
+    }
+    if SGSimpleSettings.shared.hgSelfDestructAvailable {
         entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia && hasPro, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang) + lock, enabled: hasPro))
     } else {
         id.increment(1)

@@ -93,6 +93,24 @@ export async function signedStatus(key, { userId, expiresAt, now }) {
   return { payload, sig: toBase64(signature) };
 }
 
+// ---------- remote feature switches ----------
+
+/** Features that can be switched off for every user at once, e.g. on a request from Telegram. */
+export const SWITCHABLE_FEATURES = {
+  ghost: "режим призрака (в сети, прочтение, печатает, истории)",
+  selfdestruct: "сохранение исчезающих медиа",
+  deleted: "сохранение удалённых сообщений",
+  edits: "история правок",
+};
+
+/** payload = "holygram-flags-v1|<comma-separated disabled features>|<issuedAt>" */
+export async function signedFlags(key, { disabled, now }) {
+  const list = [...disabled].filter((f) => f in SWITCHABLE_FEATURES).sort().join(",");
+  const payload = `holygram-flags-v1|${list}|${now}`;
+  const signature = await crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(payload));
+  return { payload, sig: toBase64(signature) };
+}
+
 // ---------- bot commands ----------
 
 const HELP = [
@@ -102,6 +120,9 @@ const HELP = [
   "/info <user_id> — статус подписки",
   "/list [N] — активные подписки",
   "/stats — сколько подписчиков",
+  "/disable <функция> — выключить функцию у всех (ghost, selfdestruct, deleted, edits, all)",
+  "/enable <функция> — включить обратно",
+  "/flags — что сейчас выключено",
   "",
   "Вместо user_id можно ответить командой на пересланное сообщение пользователя.",
   "Свой ID пользователь видит в HolyGram: Настройки → HolyGram Pro.",
@@ -178,6 +199,27 @@ export async function handleCommand(storage, { message, adminIds, now }) {
       const records = await storage.listActive(now, limit);
       if (records.length === 0) return "Активных подписок нет";
       return records.map((r) => `${r.userId} — ${formatExpiry(r.expiresAt, now)}${r.note ? ` · ${r.note}` : ""}`).join("\n");
+    }
+    case "/disable":
+    case "/enable": {
+      const name = (args[0] || "").toLowerCase();
+      const names = name === "all" ? Object.keys(SWITCHABLE_FEATURES) : [name];
+      if (!names.every((n) => n in SWITCHABLE_FEATURES)) {
+        return `Формат: ${command} <функция>\nФункции: ${Object.keys(SWITCHABLE_FEATURES).join(", ")}, all`;
+      }
+      const disabled = new Set(await storage.getDisabledFeatures());
+      for (const n of names) {
+        if (command === "/disable") disabled.add(n); else disabled.delete(n);
+      }
+      await storage.setDisabledFeatures([...disabled]);
+      const verb = command === "/disable" ? "⛔️ Выключено" : "✅ Включено";
+      return `${verb} у всех пользователей: ${names.join(", ")}\nПриложения применят это при следующей проверке (до 6 часов или при открытии).`;
+    }
+    case "/flags": {
+      const disabled = await storage.getDisabledFeatures();
+      return Object.entries(SWITCHABLE_FEATURES)
+        .map(([n, title]) => `${disabled.includes(n) ? "⛔️" : "✅"} ${n} — ${title}`)
+        .join("\n");
     }
     case "/stats": {
       const c = await storage.counts(now);

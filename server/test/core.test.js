@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FOREVER, grant, revoke, handleCommand, parseDuration, signedStatus, importSigningKey } from "../src/core.js";
+import { FOREVER, grant, revoke, handleCommand, parseDuration, signedStatus, signedFlags, importSigningKey } from "../src/core.js";
 
 function memoryStorage() {
   const map = new Map();
+  let disabled = [];
   return {
+    async getDisabledFeatures() { return disabled; },
+    async setDisabledFeatures(list) { disabled = list; },
     async get(id) { return map.get(id) ?? null; },
     async put(r) { map.set(r.userId, { ...r }); },
     async remove(id) { map.delete(id); },
@@ -77,4 +80,22 @@ test("signed status verifies with the public key and hides expired subscriptions
   assert.equal(ok, true);
   const expired = await signedStatus(key, { userId: 42, expiresAt: NOW - 10, now: NOW });
   assert.equal(expired.payload, `holygram-pro-v1|42|0|${NOW}`);
+});
+
+test("remote feature switches", async () => {
+  const s = memoryStorage();
+  const cmd = (text, from = ADMIN) => handleCommand(s, { message: { text, from: { id: from } }, adminIds: [ADMIN], now: NOW });
+  assert.equal(await cmd("/disable ghost", 999), null, "non-admins can't switch features");
+  assert.match(await cmd("/disable ghost"), /Выключено/);
+  assert.deepEqual(await s.getDisabledFeatures(), ["ghost"]);
+  assert.match(await cmd("/flags"), /⛔️ ghost/);
+  assert.match(await cmd("/disable all"), /selfdestruct/);
+  assert.match(await cmd("/enable all"), /Включено/);
+  assert.deepEqual(await s.getDisabledFeatures(), []);
+  assert.match(await cmd("/disable nope"), /Формат/);
+
+  const { privateKey } = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
+  const key = await importSigningKey(Buffer.from(await crypto.subtle.exportKey("pkcs8", privateKey)).toString("base64"));
+  const flags = await signedFlags(key, { disabled: ["selfdestruct", "ghost", "bogus"], now: NOW });
+  assert.equal(flags.payload, `holygram-flags-v1|ghost,selfdestruct|${NOW}`);
 });

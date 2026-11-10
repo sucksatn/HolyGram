@@ -731,8 +731,11 @@ extension SGSimpleSettings {
     // MARK: HolyGram Pro: the effective values of paid features
     /// Pro features work only with an active HolyGram Pro subscription.
     public var hgPro: Bool { HolyGramPro.shared.isActive }
-    /// Ghost mode and keeping self-destructing media exist only in the full (non-App Store) edition.
-    public var hgGhostAvailable: Bool { HolyGramEdition.current == .full }
+    /// The admin bot can switch these off for everyone (/disable), e.g. on a request from Telegram.
+    public var hgGhostAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("ghost") }
+    public var hgSelfDestructAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("selfdestruct") }
+    public var hgDeletedAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("deleted") }
+    public var hgEditsAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("edits") }
 
     // MARK: HolyGram ghost mode
     private var ghostActive: Bool { ghostMode && hgGhostAvailable && hgPro }
@@ -745,9 +748,9 @@ extension SGSimpleSettings {
     /// Stories are viewed without the author seeing it.
     public var ghostBlocksStoryViews: Bool { ghostActive && ghostNoStoryViews }
 
-    public var hgSaveDeletedMessages: Bool { saveDeletedMessages && hgPro }
-    public var hgSaveEditHistory: Bool { saveEditHistory && hgPro }
-    public var hgKeepSelfDestructingMedia: Bool { keepSelfDestructingMedia && hgGhostAvailable && hgPro }
+    public var hgSaveDeletedMessages: Bool { saveDeletedMessages && hgDeletedAvailable && hgPro }
+    public var hgSaveEditHistory: Bool { saveEditHistory && hgEditsAvailable && hgPro }
+    public var hgKeepSelfDestructingMedia: Bool { keepSelfDestructingMedia && hgSelfDestructAvailable && hgPro }
     public var hgHideSponsoredMessages: Bool { hideSponsoredMessages && hgPro }
     public var hgStreamerMode: Bool { streamerMode && hgPro }
     public var hgHideInAppSwitcher: Bool { hideInAppSwitcher && hgPro }

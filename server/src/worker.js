@@ -1,5 +1,5 @@
 // Cloudflare Worker entry point: status API for the app and the admin bot webhook.
-import { handleCommand, importSigningKey, signedStatus } from "./core.js";
+import { handleCommand, importSigningKey, signedFlags, signedStatus } from "./core.js";
 
 function d1Storage(db) {
   const row = (r) => r && { userId: r.user_id, expiresAt: r.expires_at, note: r.note, grantedBy: r.granted_by, updatedAt: r.updated_at };
@@ -21,6 +21,14 @@ function d1Storage(db) {
         "SELECT * FROM subscriptions WHERE expires_at = -1 OR expires_at > ? ORDER BY updated_at DESC LIMIT ?"
       ).bind(now, limit).all();
       return results.map(row);
+    },
+    async getDisabledFeatures() {
+      const r = await db.prepare("SELECT value FROM settings WHERE key = 'disabled_features'").first();
+      return r?.value ? r.value.split(",").filter(Boolean) : [];
+    },
+    async setDisabledFeatures(list) {
+      await db.prepare("INSERT INTO settings (key, value) VALUES ('disabled_features', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        .bind(list.join(",")).run();
     },
     async counts(now) {
       const r = await db.prepare(
@@ -58,6 +66,11 @@ export default {
       const record = await storage.get(userId);
       const key = await importSigningKey(env.SIGNING_KEY);
       return json(await signedStatus(key, { userId, expiresAt: record?.expiresAt ?? 0, now }));
+    }
+
+    if (request.method === "GET" && url.pathname === "/v1/flags") {
+      const key = await importSigningKey(env.SIGNING_KEY);
+      return json(await signedFlags(key, { disabled: await storage.getDisabledFeatures(), now }));
     }
 
     if (request.method === "POST" && url.pathname === `/bot/${env.WEBHOOK_SECRET}`) {

@@ -2,21 +2,6 @@
 import Foundation
 import CryptoKit
 
-/// Which build this is. The App Store edition leaves out features that Telegram's API terms
-/// (section 1.4) forbid: tampering with read statuses, hiding online status, keeping
-/// self-destructing media. Set by the build through the HolyGramEdition Info.plist key.
-public enum HolyGramEdition {
-    case full
-    case store
-
-    public static let current: HolyGramEdition = {
-        if let value = Bundle.main.object(forInfoDictionaryKey: "HolyGramEdition") as? String, value == "store" {
-            return .store
-        }
-        return .full
-    }()
-}
-
 /// Subscription status checked against the HolyGram Pro server. Each status is signed with the
 /// server's Ed25519 key, so it can't be forged by a proxy or by editing stored settings.
 public final class HolyGramPro {
@@ -33,6 +18,7 @@ public final class HolyGramPro {
     private static let maxStatusAge: TimeInterval = 3 * 86400
     private static let refreshInterval: TimeInterval = 6 * 3600
     private static let storageKey = "holygram_pro_statuses_v1"
+    private static let flagsStorageKey = "holygram_pro_flags_v1"
 
     public static let didChangeNotification = Notification.Name("HolyGramProDidChange")
 
@@ -57,6 +43,9 @@ public final class HolyGramPro {
     private var statuses: [Int64: Status] = [:]
     private var lastRefresh: [Int64: Date] = [:]
     private var knownUserIds: [Int64] = []
+    /// Features switched off for everyone from the admin bot (/disable), e.g. on a request from Telegram.
+    private var disabledFeatures: Set<String> = []
+    private var lastFlagsRefresh: Date?
 
     public var isConfigured: Bool {
         return !HolyGramPro.serverURL.isEmpty && HolyGramPro.publicKey != nil
@@ -70,6 +59,9 @@ public final class HolyGramPro {
     }()
 
     private init() {
+        if let stored = UserDefaults.standard.array(forKey: HolyGramPro.flagsStorageKey) as? [String], stored.count == 2, let flags = HolyGramPro.verifyFlags(payload: stored[0], signature: stored[1]) {
+            self.disabledFeatures = flags
+        }
         if let data = UserDefaults.standard.data(forKey: HolyGramPro.storageKey), let stored = try? JSONDecoder().decode([Status].self, from: data) {
             for status in stored where HolyGramPro.verify(payload: status.payload, signature: status.signature) == status {
                 self.statuses[status.userId] = status
@@ -85,6 +77,11 @@ public final class HolyGramPro {
         return self.queue.sync {
             self.statuses.values.contains(where: { $0.isActive() })
         }
+    }
+
+    /// "ghost", "selfdestruct", "deleted", "edits".
+    public func isRemotelyDisabled(_ feature: String) -> Bool {
+        return self.queue.sync { self.disabledFeatures.contains(feature) }
     }
 
     public func status(userId: Int64) -> Status? {
@@ -111,6 +108,42 @@ public final class HolyGramPro {
         for userId in toFetch {
             self.fetch(userId: userId)
         }
+        let fetchFlags: Bool = self.queue.sync {
+            if !force, let last = self.lastFlagsRefresh, Date().timeIntervalSince(last) < HolyGramPro.refreshInterval {
+                return false
+            }
+            self.lastFlagsRefresh = Date()
+            return true
+        }
+        if fetchFlags {
+            self.fetchFlags()
+        }
+    }
+
+    private func fetchFlags() {
+        guard var components = URLComponents(string: HolyGramPro.serverURL) else {
+            return
+        }
+        components.path = "/v1/flags"
+        guard let url = components.url else {
+            return
+        }
+        URLSession.shared.dataTask(with: URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20.0), completionHandler: { [weak self] data, _, _ in
+            guard let self, let data, let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let payload = object["payload"] as? String, let signature = object["sig"] as? String, let flags = HolyGramPro.verifyFlags(payload: payload, signature: signature) else {
+                return
+            }
+            let changed: Bool = self.queue.sync {
+                let changed = self.disabledFeatures != flags
+                self.disabledFeatures = flags
+                UserDefaults.standard.set([payload, signature], forKey: HolyGramPro.flagsStorageKey)
+                return changed
+            }
+            if changed {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: HolyGramPro.didChangeNotification, object: nil)
+                }
+            }
+        }).resume()
     }
 
     public func refreshKnown(force: Bool = false) {
@@ -157,6 +190,21 @@ public final class HolyGramPro {
                 NotificationCenter.default.post(name: HolyGramPro.didChangeNotification, object: nil)
             }
         }
+    }
+
+    /// Parses and checks "holygram-flags-v1|<disabled,features>|<issuedAt>".
+    static func verifyFlags(payload: String, signature: String) -> Set<String>? {
+        guard let publicKey = HolyGramPro.publicKey, let signatureData = Data(base64Encoded: signature) else {
+            return nil
+        }
+        guard publicKey.isValidSignature(signatureData, for: Data(payload.utf8)) else {
+            return nil
+        }
+        let parts = payload.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+        guard parts.count == 3, parts[0] == "holygram-flags-v1" else {
+            return nil
+        }
+        return Set(parts[1].split(separator: ",").map(String.init))
     }
 
     /// Parses and checks "holygram-pro-v1|<userId>|<expiresAt>|<issuedAt>".

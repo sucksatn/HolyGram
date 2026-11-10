@@ -2,12 +2,6 @@ name: HolyGram iOS
 
 on:
   workflow_dispatch:
-    inputs:
-      edition:
-        description: "full = all features (sideload); store = App Store edition without ghost mode and kept self-destructing media"
-        type: choice
-        options: [full, store]
-        default: full
 
 concurrency:
   group: ios-build
@@ -63,21 +57,6 @@ jobs:
           restore-keys: |
             bazel-xcode${{ steps.versions.outputs.xcode }}-
 
-      - name: Set edition
-        env:
-          EDITION: ${{ inputs.edition || 'full' }}
-        run: |
-          cd /Users/Shared/telegram-ios
-          python3 - <<'PY'
-          import os
-          p = "Telegram/BUILD"
-          s = open(p).read()
-          old = "<key>HolyGramEdition</key>\n    <string>full</string>"
-          assert old in s, "edition fragment not found"
-          open(p, "w").write(s.replace(old, "<key>HolyGramEdition</key>\n    <string>%s</string>" % os.environ["EDITION"]))
-          PY
-          echo "EDITION=$EDITION" >> "$GITHUB_ENV"
-
       - name: Write build configuration
         env:
           API_ID: ${{ secrets.API_ID }}
@@ -129,7 +108,7 @@ jobs:
 
           mkdir -p build/artifacts
           # Swiftgram's app target is //Telegram:Swiftgram
-          cp bazel-bin/Telegram/Swiftgram.ipa "build/artifacts/HolyGram-$EDITION-$APP_VERSION-$BUILD_NUMBER.ipa"
+          cp bazel-bin/Telegram/Swiftgram.ipa "build/artifacts/HolyGram-$APP_VERSION-$BUILD_NUMBER.ipa"
           ls -la build/artifacts
 
       - name: Save Bazel cache
@@ -149,8 +128,8 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ios-${{ env.EDITION }}-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}
-          name: HolyGram iOS ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }}, ${{ env.EDITION }})
+          tag_name: ios-${{ env.APP_VERSION }}-${{ env.BUILD_NUMBER }}
+          name: HolyGram iOS ${{ env.APP_VERSION }} (${{ env.BUILD_NUMBER }})
           body: |
             Unsigned HolyGram build for iOS. Install it with Sideloadly or AltStore, which re-sign it with your Apple ID.
           files: /Users/Shared/telegram-ios/build/artifacts/*.ipa

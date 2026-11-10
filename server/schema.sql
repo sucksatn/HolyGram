@@ -7,3 +7,9 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS subscriptions_expires ON subscriptions (expires_at);
+
+-- Remote feature switches (key 'disabled_features' = comma-separated list).
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
