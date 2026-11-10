@@ -2453,7 +2453,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
             
             // MARK: HolyGram
-            if SGSimpleSettings.shared.confirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
+            if SGSimpleSettings.shared.hgConfirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
                 strongSelf.holyGramConfirmSend(kind: "sticker", send: { [weak strongSelf] in
                     let _ = strongSelf?.controllerInteraction?.sendSticker(fileReference, silentPosting, schedule, query, clearInput, nil, nil, nil, bubbleUpEmojiOrStickersets)
                 })
@@ -2737,7 +2737,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }, sendGif: { [weak self] fileReference, sourceView, sourceRect, silentPosting, schedule in
             if let strongSelf = self {
                 // MARK: HolyGram
-                if SGSimpleSettings.shared.confirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
+                if SGSimpleSettings.shared.hgConfirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
                     strongSelf.holyGramConfirmSend(kind: "gif", send: { [weak strongSelf] in
                         let _ = strongSelf?.controllerInteraction?.sendGif(fileReference, sourceView, sourceRect, silentPosting, schedule)
                     })

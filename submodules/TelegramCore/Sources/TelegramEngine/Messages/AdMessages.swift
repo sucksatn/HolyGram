@@ -496,7 +496,7 @@ private class AdMessagesHistoryContextImpl {
                 return .single((nil, nil, nil, []))
             }
             // MARK: HolyGram: no sponsored messages
-            if SGSimpleSettings.shared.hideSponsoredMessages {
+            if SGSimpleSettings.shared.hgHideSponsoredMessages {
                 return .single((nil, nil, nil, []))
             }
             var flags: Int32 = 0

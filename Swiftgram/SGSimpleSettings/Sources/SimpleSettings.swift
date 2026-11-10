@@ -728,15 +728,32 @@ extension SGSimpleSettings {
         return storyStealthMode && canUseStealthMode
     }
 
+    // MARK: HolyGram Pro: the effective values of paid features
+    /// Pro features work only with an active HolyGram Pro subscription.
+    public var hgPro: Bool { HolyGramPro.shared.isActive }
+    /// Ghost mode and keeping self-destructing media exist only in the full (non-App Store) edition.
+    public var hgGhostAvailable: Bool { HolyGramEdition.current == .full }
+
     // MARK: HolyGram ghost mode
+    private var ghostActive: Bool { ghostMode && hgGhostAvailable && hgPro }
     /// Never report "online"; the account always looks offline.
-    public var ghostBlocksOnline: Bool { ghostMode && ghostHideOnline }
+    public var ghostBlocksOnline: Bool { ghostActive && ghostHideOnline }
     /// Messages are marked read locally only; the sender keeps seeing them as unread.
-    public var ghostBlocksReadReceipts: Bool { ghostMode && ghostNoReadReceipts }
+    public var ghostBlocksReadReceipts: Bool { ghostActive && ghostNoReadReceipts }
     /// "typing…", "recording voice…" and similar activities are not sent.
-    public var ghostBlocksTyping: Bool { ghostMode && ghostNoTyping }
+    public var ghostBlocksTyping: Bool { ghostActive && ghostNoTyping }
     /// Stories are viewed without the author seeing it.
-    public var ghostBlocksStoryViews: Bool { ghostMode && ghostNoStoryViews }
+    public var ghostBlocksStoryViews: Bool { ghostActive && ghostNoStoryViews }
+
+    public var hgSaveDeletedMessages: Bool { saveDeletedMessages && hgPro }
+    public var hgSaveEditHistory: Bool { saveEditHistory && hgPro }
+    public var hgKeepSelfDestructingMedia: Bool { keepSelfDestructingMedia && hgGhostAvailable && hgPro }
+    public var hgHideSponsoredMessages: Bool { hideSponsoredMessages && hgPro }
+    public var hgStreamerMode: Bool { streamerMode && hgPro }
+    public var hgHideInAppSwitcher: Bool { hideInAppSwitcher && hgPro }
+    public var hgShowRepeat: Bool { contextShowRepeat && hgPro }
+    public var hgConfirmStickerSend: Bool { confirmStickerSend && hgPro }
+    public var hgConfirmVoiceSend: Bool { confirmVoiceSend && hgPro }
     
     public static func makeOutgoingLanguageTranslationKey(accountId: Int64, peerId: Int64) -> String {
         return "\(accountId):\(peerId)"

@@ -657,6 +657,16 @@ plist_fragment(
 
 # MARK: Swiftgram
 plist_fragment(
+    name = "HolyGramEditionInfoPlist", # MARK: HolyGram: "full" or "store"; CI rewrites it for App Store builds
+    extension = "plist",
+    template =
+    """
+    <key>HolyGramEdition</key>
+    <string>full</string>
+    """
+)
+
+plist_fragment(
     name = "AppNameInfoPlist",
     extension = "plist",
     template =
@@ -2098,6 +2108,7 @@ ios_application(
         ":VersionInfoPlist",
         ":RequiredDeviceCapabilitiesPlist",
         ":UrlTypesInfoPlist",
+        ":HolyGramEditionInfoPlist", # MARK: HolyGram
     ],
     app_icons = [ ":{}_icon".format(name) for name in composer_icon_folders ],
     alternate_icons = [

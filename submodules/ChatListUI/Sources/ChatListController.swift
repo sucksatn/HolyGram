@@ -7507,8 +7507,8 @@ private final class ChatListLocationContext {
                 //
                 
                 // MARK: HolyGram: ghost mode quick toggle
-                let ghostModeOn = SGSimpleSettings.shared.ghostMode
-                if let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
+                let ghostModeOn = SGSimpleSettings.shared.ghostMode && SGSimpleSettings.shared.hgPro
+                if SGSimpleSettings.shared.hgGhostAvailable, let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
                     self.ghostButton = NavigationBarComponent.Button(id: "holygram_ghost",
                         content: .image(ghostImage),
                         tint: .generic,
@@ -7516,10 +7516,14 @@ private final class ChatListLocationContext {
                             guard let self, let parentController = self.parentController else {
                                 return
                             }
-                            let enabled = !SGSimpleSettings.shared.ghostMode
-                            SGSimpleSettings.shared.ghostMode = enabled
                             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
                             let isRussian = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+                            if !SGSimpleSettings.shared.hgPro {
+                                parentController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: isRussian ? "Режим призрака доступен в HolyGram Pro" : "Ghost mode needs HolyGram Pro", timeout: 3.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .window(.root))
+                                return
+                            }
+                            let enabled = !SGSimpleSettings.shared.ghostMode
+                            SGSimpleSettings.shared.ghostMode = enabled
                             let text: String
                             if enabled {
                                 text = isRussian ? "Режим призрака включён" : "Ghost mode is on"

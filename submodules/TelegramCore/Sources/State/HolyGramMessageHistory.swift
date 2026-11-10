@@ -28,7 +28,7 @@ private func holyGramStoreMessage(_ message: Message, attributes: [MessageAttrib
 /// Instead of deleting cloud messages the server says were deleted, marks them
 /// with `HolyGramDeletedMessageAttribute`. Returns the ids that should still be deleted.
 func holyGramKeepDeletedMessages(transaction: Transaction, ids: [MessageId]) -> [MessageId] {
-    guard SGSimpleSettings.shared.saveDeletedMessages else {
+    guard SGSimpleSettings.shared.hgSaveDeletedMessages else {
         return ids
     }
     let now = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
@@ -53,7 +53,7 @@ func holyGramKeepDeletedMessages(transaction: Transaction, ids: [MessageId]) -> 
 
 /// Same as above for deletions addressed by global message id (private chats and basic groups).
 func holyGramKeepDeletedMessages(transaction: Transaction, globalIds: [Int32]) -> [Int32] {
-    guard SGSimpleSettings.shared.saveDeletedMessages else {
+    guard SGSimpleSettings.shared.hgSaveDeletedMessages else {
         return globalIds
     }
     var remaining: [Int32] = []
@@ -71,7 +71,7 @@ func holyGramKeepDeletedMessages(transaction: Transaction, globalIds: [Int32]) -
 
 /// Adds the text being replaced to the message's edit history.
 func holyGramMessageWithEditHistory(previous: Message, updated: StoreMessage) -> StoreMessage {
-    guard SGSimpleSettings.shared.saveEditHistory else {
+    guard SGSimpleSettings.shared.hgSaveEditHistory else {
         return updated
     }
     // Edit updates also arrive for reactions, views and similar; only text changes count.

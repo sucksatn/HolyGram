@@ -307,3 +307,12 @@
 "Settings.HGPrivacy.HidePaidRows" = "Скрыть Premium, Stars и подарки";
 "Settings.HG.ConfirmSticker" = "Подтверждать стикеры и GIF";
 "Settings.HG.ConfirmVoice" = "Подтверждать голосовые";
+
+/* HolyGram Pro */
+"Settings.HGPro.YourId" = "Ваш ID: %@";
+"Settings.HGPro.NotConfigured" = "В этой сборке функции Pro бесплатны.";
+"Settings.HGPro.ActiveForever" = "HolyGram Pro активен навсегда.";
+"Settings.HGPro.ActiveUntil" = "HolyGram Pro активен до %@.";
+"Settings.HGPro.Inactive" = "Режиму призрака, истории сообщений, скрытию рекламы и другим функциям с 🔒 нужен HolyGram Pro.";
+"Settings.HGPro.Get" = "Получить HolyGram Pro";
+"Settings.HGPro.Manage" = "Управление подпиской";

@@ -93,7 +93,7 @@ func managedAutoremoveMessageOperations(network: Network, postbox: Postbox, isRe
                                 }
                                 var updatedMedia = currentMessage.media
                                 // MARK: HolyGram: keep viewed self-destructing media on this device
-                                let keepMedia = SGSimpleSettings.shared.keepSelfDestructingMedia
+                                let keepMedia = SGSimpleSettings.shared.hgKeepSelfDestructingMedia
                                 for i in 0 ..< updatedMedia.count where !keepMedia {
                                     if let _ = updatedMedia[i] as? TelegramMediaImage {
                                         updatedMedia[i] = TelegramMediaExpiredContent(data: .image)

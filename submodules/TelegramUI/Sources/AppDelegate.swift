@@ -2132,7 +2132,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private var holyGramPrivacyBlurView: UIView?
     
     private func holyGramShowPrivacyBlur() {
-        guard SGSimpleSettings.shared.hideInAppSwitcher, self.holyGramPrivacyBlurView == nil, let window = self.mainWindow?.hostView.containerView.window else {
+        guard SGSimpleSettings.shared.hgHideInAppSwitcher, self.holyGramPrivacyBlurView == nil, let window = self.mainWindow?.hostView.containerView.window else {
             return
         }
         let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
@@ -2149,7 +2149,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         guard let layer = self.mainWindow?.hostView.containerView.layer else {
             return
         }
-        let enabled = SGSimpleSettings.shared.streamerMode
+        let enabled = SGSimpleSettings.shared.hgStreamerMode
         if self.holyGramStreamerModeApplied != enabled {
             self.holyGramStreamerModeApplied = enabled
             setLayerDisableScreenshots(layer, enabled)
@@ -2289,6 +2289,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     func handleDidBecomeActive() {
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.holyGramApplyStreamerMode() // MARK: HolyGram
+        HolyGramPro.shared.refreshKnown() // MARK: HolyGram
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true

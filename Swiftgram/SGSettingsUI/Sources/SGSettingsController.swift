@@ -28,6 +28,7 @@ private enum SGControllerSection: Int32, SGItemListSection {
     case search
     case trending
     case content
+    case holyGramPro // MARK: HolyGram
     case ghost // MARK: HolyGram
     case messageHistory // MARK: HolyGram
     case holyGramPrivacy // MARK: HolyGram
@@ -146,6 +147,7 @@ private enum SGSliderSetting: String {
 }
 
 private enum SGDisclosureLink: String {
+    case holyGramProContact // MARK: HolyGram
     case contentSettings
     case languageSettings
 }
@@ -161,7 +163,27 @@ private struct SGSettingsControllerState: Equatable {
 
 private typealias SGControllerEntry = SGItemListUIEntry<SGControllerSection, SGBoolSetting, SGSliderSetting, SGOneFromManySetting, SGDisclosureLink, AnyHashable>
 
-private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState) -> [SGControllerEntry] {
+// MARK: HolyGram Pro status line for the settings screen
+private func holyGramProStatusText(lang: String, userId: Int64) -> String {
+    let pro = HolyGramPro.shared
+    let idLine = i18n("Settings.HGPro.YourId", lang, "\(userId)")
+    guard pro.isConfigured else {
+        return i18n("Settings.HGPro.NotConfigured", lang) + "\n" + idLine
+    }
+    if let status = pro.status(userId: userId), status.isActive() {
+        if status.expiresAt == -1 {
+            return i18n("Settings.HGPro.ActiveForever", lang) + "\n" + idLine
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: lang)
+        formatter.dateStyle = .long
+        let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(status.expiresAt)))
+        return i18n("Settings.HGPro.ActiveUntil", lang, date) + "\n" + idLine
+    }
+    return i18n("Settings.HGPro.Inactive", lang) + "\n" + idLine
+}
+
+private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState, holyGramUserId: Int64) -> [SGControllerEntry] {
     
     let lang = presentationData.strings.baseLanguageCode
     let strings = presentationData.strings
@@ -189,28 +211,49 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
         id.increment(1)
     }
     
-    // MARK: HolyGram ghost mode
-    let ghostOn = SGSimpleSettings.shared.ghostMode
-    entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: SGSimpleSettings.shared.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && SGSimpleSettings.shared.ghostNoReadReceipts))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
-    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
-    entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
+    // MARK: HolyGram Pro
+    let pro = HolyGramPro.shared
+    let hasPro = SGSimpleSettings.shared.hgPro
+    let lock = hasPro ? "" : " 🔒"
+    let isStore = HolyGramEdition.current == .store
+    entries.append(.header(id: id.count, section: .holyGramPro, text: "HOLYGRAM PRO", badge: nil))
+    entries.append(.notice(id: id.count, section: .holyGramPro, text: holyGramProStatusText(lang: lang, userId: holyGramUserId)))
+    if !HolyGramPro.botUsername.isEmpty {
+        entries.append(.disclosure(id: id.count, section: .holyGramPro, link: .holyGramProContact, text: i18n(hasPro && pro.isConfigured ? "Settings.HGPro.Manage" : "Settings.HGPro.Get", lang)))
+    } else {
+        id.increment(1)
+    }
+    
+    // MARK: HolyGram ghost mode (not in the App Store edition, see HolyGramEdition)
+    if !isStore {
+        let ghostOn = SGSimpleSettings.shared.ghostMode && hasPro
+        entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang) + lock, enabled: hasPro))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: SGSimpleSettings.shared.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && SGSimpleSettings.shared.ghostNoReadReceipts))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
+        entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
+    } else {
+        id.increment(8)
+    }
     
     entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
-    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages, text: i18n("Settings.MessageHistory.SaveDeleted", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory, text: i18n("Settings.MessageHistory.SaveEdits", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages && hasPro, text: i18n("Settings.MessageHistory.SaveDeleted", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory && hasPro, text: i18n("Settings.MessageHistory.SaveEdits", lang) + lock, enabled: hasPro))
+    if !isStore {
+        entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia && hasPro, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang) + lock, enabled: hasPro))
+    } else {
+        id.increment(1)
+    }
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode, text: i18n("Settings.HGPrivacy.StreamerMode", lang), enabled: true))
-    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher && hasPro, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
     entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
@@ -776,6 +819,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .holyGramProContact:
+                context.sharedContext.applicationBindings.openUrl("https://t.me/\(HolyGramPro.botUsername)?start=pro")
             case .languageSettings:
                 pushControllerImpl?(context.sharedContext.makeLocalizationListController(context: context))
             case .contentSettings:
@@ -802,7 +847,20 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
     contentSettingsConfiguration.set(.single(nil)
     |> then(updatedContentSettingsConfiguration))
     
-    let signal = combineLatest(simplePromise.get(), /*sliderPromise.get(),*/ statePromise.get(), context.sharedContext.presentationData, sharedData, preferences, contentSettingsConfiguration.get(),
+    // MARK: HolyGram Pro: refresh the status now and redraw when it changes
+    HolyGramPro.shared.refresh(userIds: [context.account.peerId.id._internalGetInt64Value()], force: true)
+    let holyGramProChanges = Signal<Void, NoError> { subscriber in
+        subscriber.putNext(Void())
+        let observer = NotificationCenter.default.addObserver(forName: HolyGramPro.didChangeNotification, object: nil, queue: .main, using: { _ in
+            subscriber.putNext(Void())
+        })
+        return ActionDisposable {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    let combinedSimplePromise = combineLatest(simplePromise.get(), holyGramProChanges) |> map { value, _ in value }
+    
+    let signal = combineLatest(combinedSimplePromise, /*sliderPromise.get(),*/ statePromise.get(), context.sharedContext.presentationData, sharedData, preferences, contentSettingsConfiguration.get(),
         context.engine.accountData.observeAvailableColorOptions(scope: .replies),
         context.engine.accountData.observeAvailableColorOptions(scope: .profile)
     )
@@ -811,7 +869,7 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         let callListSettings: CallListSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? CallListSettings.defaultSettings
         let experimentalUISettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
-        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state)
+        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state, holyGramUserId: context.account.peerId.id._internalGetInt64Value())
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("HolyGram"), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         

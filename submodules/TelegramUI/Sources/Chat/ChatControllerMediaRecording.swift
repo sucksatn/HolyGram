@@ -689,7 +689,7 @@ extension ChatControllerImpl {
         postpone: Bool = false
     ) {
         // MARK: HolyGram
-        if SGSimpleSettings.shared.confirmVoiceSend && !self.holyGramSkipSendConfirmation && !postpone {
+        if SGSimpleSettings.shared.hgConfirmVoiceSend && !self.holyGramSkipSendConfirmation && !postpone {
             self.holyGramConfirmSend(kind: "voice", send: { [weak self] in
                 self?.sendMediaRecording(silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, viewOnce: viewOnce, messageEffect: messageEffect, postpone: postpone)
             })

@@ -312,3 +312,12 @@
 "Settings.HGPrivacy.HidePaidRows" = "Hide Premium, Stars and Gifts";
 "Settings.HG.ConfirmSticker" = "Confirm Stickers and GIFs";
 "Settings.HG.ConfirmVoice" = "Confirm Voice Messages";
+
+/* HolyGram Pro */
+"Settings.HGPro.YourId" = "Your ID: %@";
+"Settings.HGPro.NotConfigured" = "Pro features are free in this build.";
+"Settings.HGPro.ActiveForever" = "HolyGram Pro is active forever.";
+"Settings.HGPro.ActiveUntil" = "HolyGram Pro is active until %@.";
+"Settings.HGPro.Inactive" = "Ghost mode, message history, hiding ads and other 🔒 features need HolyGram Pro.";
+"Settings.HGPro.Get" = "Get HolyGram Pro";
+"Settings.HGPro.Manage" = "Manage Subscription";
