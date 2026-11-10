@@ -383,6 +383,33 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             })))
                         }
                         //
+                        // MARK: HolyGram: hide the chat, lock it with Face ID
+                        if SGSimpleSettings.shared.hgPro && peerId != context.account.peerId {
+                            let ru = strings.baseLanguageCode.hasPrefix("ru") || strings.baseLanguageCode.hasPrefix("uk")
+                            items.append(.action(ContextMenuActionItem(text: ru ? "Скрыть чат" : "Hide Chat", icon: { theme in generateTintedImage(image: UIImage(systemName: "eye.slash.circle"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                f(.default)
+                                SGSimpleSettings.shared.setHiddenChat(peerId.toInt64(), true)
+                                chatListController?.holyGramRemoveFromList(peerId: peerId)
+                                if let chatListController {
+                                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                    chatListController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Чат скрыт. Он в Настройки → HolyGram → Скрытые чаты." : "Chat hidden. Find it in Settings → HolyGram → Hidden Chats.", timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                }
+                            })))
+                            let isLocked = SGSimpleSettings.shared.isLockedChat(peerId.toInt64())
+                            items.append(.action(ContextMenuActionItem(text: isLocked ? (ru ? "Снять Face ID" : "Remove Face ID Lock") : (ru ? "Закрыть Face ID" : "Lock with Face ID"), icon: { theme in generateTintedImage(image: UIImage(systemName: isLocked ? "lock.open" : "lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                f(.default)
+                                if isLocked {
+                                    HolyGramChatLocks.authenticate(reason: ru ? "Снять блокировку чата" : "Remove the chat lock", completion: { success in
+                                        if success {
+                                            SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), false)
+                                        }
+                                    })
+                                } else {
+                                    SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), true)
+                                }
+                            })))
+                        }
+                        //
                         
                         if !isCommunity {
                             if isUnread {

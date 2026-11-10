@@ -2170,6 +2170,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     
     func handleWillResignActive() {
         self.holyGramShowPrivacyBlur() // MARK: HolyGram
+        HolyGramChatLocks.shared.lockAll() // MARK: HolyGram
         self.isActiveValue = false
         self.isActivePromise.set(false)
         self.clearNotificationsManager?.commitNow()

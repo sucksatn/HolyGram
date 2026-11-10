@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import UIKit
 import TelegramCore
 import TelegramPresentationData
@@ -684,6 +685,10 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
             continue loop
         }
         if let peerId = peerId, state.pendingRemovalItemIds.contains(ChatListNodeState.ItemId(peerId: peerId, threadId: threadId)) {
+            continue loop
+        }
+        // MARK: HolyGram: hidden chats are listed only in HolyGram settings
+        if case .chatList = entry.index, let peerId = peerId, SGSimpleSettings.shared.isHiddenChat(peerId.toInt64()) {
             continue loop
         }
         var updatedMessages = entry.messages
