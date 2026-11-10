@@ -63,8 +63,9 @@ jobs:
           API_HASH: ${{ secrets.API_HASH }}
         run: |
           cd /Users/Shared/telegram-ios
-          # bundle_id and team_id must match the fake signing profiles in
-          # build-system/fake-codesigning. The IPA is re-signed with your own
+          # bundle_id and team_id match build-system/fake-codesigning. Its
+          # provisioning profiles expired on 2026-10-30, so the build runs with
+          # --disableProvisioningProfiles; the IPA is re-signed with your own
           # Apple ID when you sideload it.
           python3 - <<'PY'
           import json, os
@@ -102,6 +103,7 @@ jobs:
             --configurationPath=build-system/holygram-configuration.json \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
+            --disableProvisioningProfiles \
             --buildNumber="$BUILD_NUMBER"
 
           mkdir -p build/artifacts
