@@ -343,7 +343,7 @@ alternate_icon_folders = [
 ]
 #
 
-composer_icon_folders = ["Swiftgram"] # MARK: Swiftgram
+composer_icon_folders = ["HolyGram"] # MARK: HolyGram
 
 [
     filegroup(
