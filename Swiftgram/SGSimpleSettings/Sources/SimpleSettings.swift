@@ -123,6 +123,7 @@ public class SGSimpleSettings {
         case ghostNoStoryViews
         case ghostReadOnReply
         case hideInAppSwitcher
+        case hideSponsoredMessages
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -295,6 +296,7 @@ public class SGSimpleSettings {
         Keys.ghostNoStoryViews.rawValue: true,
         Keys.ghostReadOnReply.rawValue: true,
         Keys.hideInAppSwitcher.rawValue: false,
+        Keys.hideSponsoredMessages.rawValue: true,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -451,6 +453,10 @@ public class SGSimpleSettings {
     /// Blur the app in the app switcher.
     @UserDefault(key: Keys.hideInAppSwitcher.rawValue)
     public var hideInAppSwitcher: Bool
+
+    /// Don't load sponsored messages in channels.
+    @UserDefault(key: Keys.hideSponsoredMessages.rawValue)
+    public var hideSponsoredMessages: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

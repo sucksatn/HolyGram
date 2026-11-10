@@ -300,3 +300,4 @@
 /* HolyGram: privacy */
 "Settings.HGPrivacy.Header" = "КОНФИДЕНЦИАЛЬНОСТЬ";
 "Settings.HGPrivacy.HideInAppSwitcher" = "Размывать в списке приложений";
+"Settings.HGPrivacy.HideSponsored" = "Скрывать рекламу в каналах";

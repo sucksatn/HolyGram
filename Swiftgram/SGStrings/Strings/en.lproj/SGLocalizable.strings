@@ -305,3 +305,4 @@
 /* HolyGram: privacy */
 "Settings.HGPrivacy.Header" = "PRIVACY";
 "Settings.HGPrivacy.HideInAppSwitcher" = "Blur in App Switcher";
+"Settings.HGPrivacy.HideSponsored" = "Hide Sponsored Messages";

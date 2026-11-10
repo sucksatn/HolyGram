@@ -58,6 +58,7 @@ private enum SGBoolSetting: String {
     case saveDeletedMessages
     case saveEditHistory
     case hideInAppSwitcher
+    case hideSponsoredMessages
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -200,6 +201,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
@@ -458,6 +460,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.saveEditHistory = value
         case .hideInAppSwitcher:
             SGSimpleSettings.shared.hideInAppSwitcher = value
+        case .hideSponsoredMessages:
+            SGSimpleSettings.shared.hideSponsoredMessages = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:
