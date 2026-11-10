@@ -309,3 +309,4 @@
 "Settings.MessageHistory.KeepSelfDestructing" = "Keep Self-Destructing Media";
 "Settings.HGPrivacy.StreamerMode" = "Streamer Mode";
 "Settings.HGPrivacy.Notice" = "Streamer Mode hides HolyGram from screenshots, screen recordings and screen sharing.";
+"Settings.HGPrivacy.HidePaidRows" = "Hide Premium, Stars and Gifts";

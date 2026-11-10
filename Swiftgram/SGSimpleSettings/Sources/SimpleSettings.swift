@@ -126,6 +126,7 @@ public class SGSimpleSettings {
         case hideSponsoredMessages
         case keepSelfDestructingMedia
         case streamerMode
+        case hidePaidFeatureRows
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -301,6 +302,7 @@ public class SGSimpleSettings {
         Keys.hideSponsoredMessages.rawValue: true,
         Keys.keepSelfDestructingMedia.rawValue: false,
         Keys.streamerMode.rawValue: false,
+        Keys.hidePaidFeatureRows.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -469,6 +471,10 @@ public class SGSimpleSettings {
     /// Hide the app from screenshots, screen recordings and screen sharing.
     @UserDefault(key: Keys.streamerMode.rawValue)
     public var streamerMode: Bool
+
+    /// Hide the Premium, Stars, TON, Business and Gifts rows in Settings.
+    @UserDefault(key: Keys.hidePaidFeatureRows.rawValue)
+    public var hidePaidFeatureRows: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

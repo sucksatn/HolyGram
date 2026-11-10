@@ -61,6 +61,7 @@ private enum SGBoolSetting: String {
     case hideInAppSwitcher
     case hideSponsoredMessages
     case streamerMode
+    case hidePaidFeatureRows
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -205,6 +206,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode, text: i18n("Settings.HGPrivacy.StreamerMode", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
@@ -472,6 +474,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         case .streamerMode:
             SGSimpleSettings.shared.streamerMode = value
             askForRestart?()
+        case .hidePaidFeatureRows:
+            SGSimpleSettings.shared.hidePaidFeatureRows = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:
