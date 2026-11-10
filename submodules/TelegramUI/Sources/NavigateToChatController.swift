@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import UIKit
 import Display
 import SwiftSignalKit
@@ -22,6 +23,19 @@ import ChatMessageNotificationItem
 import FaceScanScreen
 
 public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams) {
+    // MARK: HolyGram: chats locked with Face ID, whichever way they are opened
+    let holyGramPeerIdValue = params.chatLocation.peerId.toInt64()
+    if SGSimpleSettings.shared.isLockedChat(holyGramPeerIdValue) && !HolyGramChatLocks.shared.isUnlocked(holyGramPeerIdValue) {
+        let ru = params.context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode.hasPrefix("ru")
+        HolyGramChatLocks.authenticate(reason: ru ? "Открыть закрытый чат" : "Open the locked chat", completion: { success in
+            if success {
+                HolyGramChatLocks.shared.markUnlocked(holyGramPeerIdValue)
+                navigateToChatControllerImpl(params)
+            }
+        })
+        return
+    }
+    //
     if case let .peer(peer) = params.chatLocation {
         let _ = params.context.engine.peers.ensurePeerIsLocallyAvailable(peer: peer).startStandalone()
     }
