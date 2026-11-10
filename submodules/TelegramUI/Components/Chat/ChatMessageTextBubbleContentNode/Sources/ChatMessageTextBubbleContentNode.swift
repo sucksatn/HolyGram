@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import LottieSettings
 import UIKit
 import AsyncDisplayKit
@@ -598,9 +599,9 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                         }
                     }
                     
-                    attributedText = stringWithAppliedEntities(rawText, entities: entities, strings: item.presentationData.strings, dateTimeFormat: item.presentationData.dateTimeFormat, baseColor: messageTheme.primaryTextColor, linkColor: messageTheme.linkTextColor, baseQuoteTintColor: mainColor, baseQuoteSecondaryTintColor: secondaryColor, baseQuoteTertiaryTintColor: tertiaryColor, codeBlockTitleColor: codeBlockTitleColor, codeBlockAccentColor: codeBlockAccentColor, codeBlockBackgroundColor: codeBlockBackgroundColor, codeBlockFillColor: codeBlockFillColor, baseFont: textFont, linkFont: textFont, boldFont: item.presentationData.messageBoldFont, italicFont: item.presentationData.messageItalicFont, boldItalicFont: item.presentationData.messageBoldItalicFont, fixedFont: item.presentationData.messageFixedFont, blockQuoteFont: item.presentationData.messageBlockQuoteFont, underlineLinks: underlineLinks, message: item.message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight)
+                    attributedText = holyGramHighlightKeywords(stringWithAppliedEntities(rawText, entities: entities, strings: item.presentationData.strings, dateTimeFormat: item.presentationData.dateTimeFormat, baseColor: messageTheme.primaryTextColor, linkColor: messageTheme.linkTextColor, baseQuoteTintColor: mainColor, baseQuoteSecondaryTintColor: secondaryColor, baseQuoteTertiaryTintColor: tertiaryColor, codeBlockTitleColor: codeBlockTitleColor, codeBlockAccentColor: codeBlockAccentColor, codeBlockBackgroundColor: codeBlockBackgroundColor, codeBlockFillColor: codeBlockFillColor, baseFont: textFont, linkFont: textFont, boldFont: item.presentationData.messageBoldFont, italicFont: item.presentationData.messageItalicFont, boldItalicFont: item.presentationData.messageBoldItalicFont, fixedFont: item.presentationData.messageFixedFont, blockQuoteFont: item.presentationData.messageBlockQuoteFont, underlineLinks: underlineLinks, message: item.message, adjustQuoteFontSize: true, cachedMessageSyntaxHighlight: cachedMessageSyntaxHighlight))
                 } else if !rawText.isEmpty {
-                    attributedText = NSAttributedString(string: rawText, font: textFont, textColor: messageTheme.primaryTextColor)
+                    attributedText = holyGramHighlightKeywords(NSAttributedString(string: rawText, font: textFont, textColor: messageTheme.primaryTextColor))
                 } else {
                     attributedText = NSAttributedString(string: " ", font: textFont, textColor: messageTheme.primaryTextColor)
                 }
@@ -1844,4 +1845,34 @@ extension ChatMessageTextBubbleContentNode: ChatMessageQuoteSourceContentNode {
         }
         return EngineMessageReplyQuote(text: trimmedText.string, offset: textSelection.offset, entities: trimmedText.entities, media: nil)
     }
+}
+
+// MARK: HolyGram: highlight the user's keywords (e.g. their name) in message text
+private func holyGramHighlightKeywords(_ text: NSAttributedString) -> NSAttributedString {
+    let settings = SGSimpleSettings.shared
+    guard settings.hgPro else {
+        return text
+    }
+    let keywords = settings.highlightKeywords.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 2 }
+    if keywords.isEmpty {
+        return text
+    }
+    let string = text.string as NSString
+    var result: NSMutableAttributedString?
+    for keyword in keywords {
+        var searchRange = NSRange(location: 0, length: string.length)
+        while searchRange.length > 0 {
+            let found = string.range(of: keyword, options: [.caseInsensitive, .diacriticInsensitive], range: searchRange)
+            if found.location == NSNotFound {
+                break
+            }
+            if result == nil {
+                result = NSMutableAttributedString(attributedString: text)
+            }
+            result?.addAttribute(.foregroundColor, value: UIColor.systemOrange, range: found)
+            let next = found.location + found.length
+            searchRange = NSRange(location: next, length: string.length - next)
+        }
+    }
+    return result ?? text
 }

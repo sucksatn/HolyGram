@@ -23,13 +23,25 @@ private typealias DeletedMessagesEntry = SGItemListUIEntry<DeletedMessagesSectio
 private let deletedMessagesLimit = 300
 
 public func holyGramDeletedMessagesController(context: AccountContext) -> ViewController {
+    let ids = HolyGramDeletedIndex.entries().prefix(deletedMessagesLimit).map { entry in
+        EngineMessage.Id(peerId: EnginePeer.Id(entry.peerId), namespace: entry.namespace, id: entry.id)
+    }
+    return holyGramStoredMessagesController(context: context, ids: Array(ids), title: ("Удалённые сообщения", "Deleted Messages"), empty: ("Здесь появятся сообщения, которые удалили собеседники. Включите «Сохранять удалённые сообщения».", "Messages others delete will show up here. Turn on Keep Deleted Messages."))
+}
+
+public func holyGramBookmarksController(context: AccountContext) -> ViewController {
+    let ids = HolyGramBookmarks.entries().map { peerId, namespace, id in
+        EngineMessage.Id(peerId: EnginePeer.Id(peerId), namespace: namespace, id: id)
+    }
+    return holyGramStoredMessagesController(context: context, ids: ids, title: ("Закладки", "Bookmarks"), empty: ("Закладок нет. Удерживайте сообщение и выберите «В закладки».", "No bookmarks yet. Long-press a message and choose Bookmark."))
+}
+
+/// A searchable list of messages by id that opens each one in its chat.
+private func holyGramStoredMessagesController(context: AccountContext, ids: [EngineMessage.Id], title: (String, String), empty: (String, String)) -> ViewController {
     let query = ValuePromise<String>("", ignoreRepeated: true)
     var openMessageImpl: ((EngineMessage.Id) -> Void)?
 
     let messagesSignal: Signal<[EngineMessage], NoError> = {
-        let ids = HolyGramDeletedIndex.entries().prefix(deletedMessagesLimit).map { entry in
-            EngineMessage.Id(peerId: EnginePeer.Id(entry.peerId), namespace: entry.namespace, id: entry.id)
-        }
         // The index is shared by all accounts on the device; this account resolves only its own messages.
         return context.engine.data.get(EngineDataMap(ids.map(TelegramEngine.EngineData.Item.Messages.Message.init)))
         |> map { messages -> [EngineMessage] in
@@ -81,7 +93,7 @@ public func holyGramDeletedMessagesController(context: AccountContext) -> ViewCo
 
         let notice: String
         if messages.isEmpty {
-            notice = ru ? "Здесь появятся сообщения, которые удалили собеседники. Включите «Сохранять удалённые сообщения»." : "Messages others delete will show up here. Turn on Keep Deleted Messages."
+            notice = ru ? empty.0 : empty.1
         } else if shown == 0 {
             notice = ru ? "Ничего не найдено." : "Nothing found."
         } else {
@@ -89,7 +101,7 @@ public func holyGramDeletedMessagesController(context: AccountContext) -> ViewCo
         }
         entries.append(.notice(id: id, section: .notice, text: notice))
 
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(ru ? "Удалённые сообщения" : "Deleted Messages"), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(ru ? title.0 : title.1), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: nil, initialScrollToItem: nil)
         return (controllerState, (listState, arguments))
     }

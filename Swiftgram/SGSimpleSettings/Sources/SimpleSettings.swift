@@ -134,6 +134,20 @@ public class SGSimpleSettings {
         case hideSimilarChannels
         case hiddenChats
         case lockedChats
+        case highlightKeywords
+        case silentChats
+        case hgShowGhostButton
+        case menuGhostException
+        case menuHideChat
+        case menuLockChat
+        case menuSilentChat
+        case menuCopyId
+        case menuDeleteMine
+        case menuBookmark
+        case menuRemind
+        case menuChatStats
+        case menuSaveAllMedia
+        case menuEditHistory
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -318,6 +332,20 @@ public class SGSimpleSettings {
         Keys.hideSimilarChannels.rawValue: false,
         Keys.hiddenChats.rawValue: [String](),
         Keys.lockedChats.rawValue: [String](),
+        Keys.highlightKeywords.rawValue: [String](),
+        Keys.silentChats.rawValue: [String](),
+        Keys.hgShowGhostButton.rawValue: true,
+        Keys.menuGhostException.rawValue: true,
+        Keys.menuHideChat.rawValue: true,
+        Keys.menuLockChat.rawValue: true,
+        Keys.menuSilentChat.rawValue: true,
+        Keys.menuCopyId.rawValue: true,
+        Keys.menuDeleteMine.rawValue: true,
+        Keys.menuBookmark.rawValue: true,
+        Keys.menuRemind.rawValue: true,
+        Keys.menuChatStats.rawValue: true,
+        Keys.menuSaveAllMedia.rawValue: true,
+        Keys.menuEditHistory.rawValue: true,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -519,6 +547,63 @@ public class SGSimpleSettings {
     /// Chats (peer ids) that need Face ID to open.
     @UserDefault(key: Keys.lockedChats.rawValue)
     public var lockedChats: [String]
+
+    /// Words highlighted in message text, case-insensitive.
+    @UserDefault(key: Keys.highlightKeywords.rawValue)
+    public var highlightKeywords: [String]
+
+    /// Chats (peer ids) where messages are always sent without sound.
+    @UserDefault(key: Keys.silentChats.rawValue)
+    public var silentChats: [String]
+
+    // MARK: HolyGram: which HolyGram items appear in menus
+    /// Show the ghost mode eye above the chat list.
+    @UserDefault(key: Keys.hgShowGhostButton.rawValue)
+    public var hgShowGhostButton: Bool
+
+    /// Chat menu: send read receipts here.
+    @UserDefault(key: Keys.menuGhostException.rawValue)
+    public var menuGhostException: Bool
+
+    /// Chat menu: hide chat.
+    @UserDefault(key: Keys.menuHideChat.rawValue)
+    public var menuHideChat: Bool
+
+    /// Chat menu: lock with Face ID.
+    @UserDefault(key: Keys.menuLockChat.rawValue)
+    public var menuLockChat: Bool
+
+    /// Chat menu: always send silently.
+    @UserDefault(key: Keys.menuSilentChat.rawValue)
+    public var menuSilentChat: Bool
+
+    /// Chat menu: copy ID and link.
+    @UserDefault(key: Keys.menuCopyId.rawValue)
+    public var menuCopyId: Bool
+
+    /// Chat menu: delete all my messages.
+    @UserDefault(key: Keys.menuDeleteMine.rawValue)
+    public var menuDeleteMine: Bool
+
+    /// Message menu: bookmark.
+    @UserDefault(key: Keys.menuBookmark.rawValue)
+    public var menuBookmark: Bool
+
+    /// Message menu: remind me.
+    @UserDefault(key: Keys.menuRemind.rawValue)
+    public var menuRemind: Bool
+
+    /// Message menu: chat statistics.
+    @UserDefault(key: Keys.menuChatStats.rawValue)
+    public var menuChatStats: Bool
+
+    /// Message menu: save all chat media.
+    @UserDefault(key: Keys.menuSaveAllMedia.rawValue)
+    public var menuSaveAllMedia: Bool
+
+    /// Message menu: edit history.
+    @UserDefault(key: Keys.menuEditHistory.rawValue)
+    public var menuEditHistory: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool

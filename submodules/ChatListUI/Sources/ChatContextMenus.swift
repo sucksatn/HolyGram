@@ -368,7 +368,7 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                         }
                         
                         // MARK: HolyGram: per-chat exception from ghost mode's hidden read receipts
-                        if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                        if SGSimpleSettings.shared.ghostBlocksReadReceipts && SGSimpleSettings.shared.menuGhostException {
                             let isException = SGSimpleSettings.shared.isGhostReadException(peerId.toInt64())
                             let isRussian = strings.baseLanguageCode.hasPrefix("ru") || strings.baseLanguageCode.hasPrefix("uk")
                             let title: String
@@ -386,28 +386,113 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                         // MARK: HolyGram: hide the chat, lock it with Face ID
                         if SGSimpleSettings.shared.hgPro && peerId != context.account.peerId {
                             let ru = strings.baseLanguageCode.hasPrefix("ru") || strings.baseLanguageCode.hasPrefix("uk")
-                            items.append(.action(ContextMenuActionItem(text: ru ? "Скрыть чат" : "Hide Chat", icon: { theme in generateTintedImage(image: UIImage(systemName: "eye.slash.circle"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
-                                f(.default)
-                                SGSimpleSettings.shared.setHiddenChat(peerId.toInt64(), true)
-                                chatListController?.holyGramRemoveFromList(peerId: peerId)
-                                if let chatListController {
+                            if SGSimpleSettings.shared.menuHideChat {
+                                items.append(.action(ContextMenuActionItem(text: ru ? "Скрыть чат" : "Hide Chat", icon: { theme in generateTintedImage(image: UIImage(systemName: "eye.slash.circle"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    SGSimpleSettings.shared.setHiddenChat(peerId.toInt64(), true)
+                                    chatListController?.holyGramRemoveFromList(peerId: peerId)
+                                    if let chatListController {
+                                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                        chatListController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Чат скрыт. Он в Настройки → HolyGram → Скрытые чаты." : "Chat hidden. Find it in Settings → HolyGram → Hidden Chats.", timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                    }
+                                })))
+                            }
+                            if SGSimpleSettings.shared.menuSilentChat {
+                                let isSilent = SGSimpleSettings.shared.isSilentChat(peerId.toInt64())
+                                items.append(.action(ContextMenuActionItem(text: isSilent ? (ru ? "Отправлять со звуком" : "Send With Sound") : (ru ? "Отправлять без звука" : "Always Send Silently"), icon: { theme in generateTintedImage(image: UIImage(systemName: isSilent ? "bell" : "bell.slash"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                    SGSimpleSettings.shared.setSilentChat(peerId.toInt64(), !isSilent)
+                                    f(.default)
+                                })))
+                            }
+                            // MARK: HolyGram: copy the chat ID (Bot API style) and its link
+                            if SGSimpleSettings.shared.menuCopyId {
+                                items.append(.action(ContextMenuActionItem(text: ru ? "Скопировать ID и ссылку" : "Copy ID and Link", icon: { theme in generateTintedImage(image: UIImage(systemName: "number"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    let rawId = peerId.id._internalGetInt64Value()
+                                    var lines: [String] = []
+                                    switch peer {
+                                    case .channel:
+                                        lines.append("ID: -100\(rawId)")
+                                    case .legacyGroup:
+                                        lines.append("ID: -\(rawId)")
+                                    default:
+                                        lines.append("ID: \(rawId)")
+                                    }
+                                    if let username = peer.addressName, !username.isEmpty {
+                                        lines.append("https://t.me/\(username)")
+                                    } else if case .channel = peer {
+                                        lines.append("https://t.me/c/\(rawId)/")
+                                    }
+                                    UIPasteboard.general.string = lines.joined(separator: "\n")
+                                    if let chatListController {
+                                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                        chatListController.present(UndoOverlayController(presentationData: presentationData, content: .copy(text: ru ? "Скопировано" : "Copied"), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                    }
+                                })))
+                            }
+                            // MARK: HolyGram: delete every message the account sent in a group
+                            var isGroup = false
+                            if case .legacyGroup = peer {
+                                isGroup = true
+                            } else if case let .channel(channel) = peer, case .group = channel.info {
+                                isGroup = true
+                            }
+                            if isGroup && SGSimpleSettings.shared.menuDeleteMine {
+                                items.append(.action(ContextMenuActionItem(text: ru ? "Удалить все мои сообщения" : "Delete All My Messages", textColor: .destructive, icon: { theme in generateTintedImage(image: UIImage(systemName: "trash"), color: theme.contextMenu.destructiveColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    guard let chatListController else {
+                                        return
+                                    }
                                     let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-                                    chatListController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Чат скрыт. Он в Настройки → HolyGram → Скрытые чаты." : "Chat hidden. Find it in Settings → HolyGram → Hidden Chats.", timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
-                                }
-                            })))
-                            let isLocked = SGSimpleSettings.shared.isLockedChat(peerId.toInt64())
-                            items.append(.action(ContextMenuActionItem(text: isLocked ? (ru ? "Снять Face ID" : "Remove Face ID Lock") : (ru ? "Закрыть Face ID" : "Lock with Face ID"), icon: { theme in generateTintedImage(image: UIImage(systemName: isLocked ? "lock.open" : "lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
-                                f(.default)
-                                if isLocked {
-                                    HolyGramChatLocks.authenticate(reason: ru ? "Снять блокировку чата" : "Remove the chat lock", completion: { success in
-                                        if success {
-                                            SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), false)
+                                    let toast: (String) -> Void = { [weak chatListController] text in
+                                        chatListController?.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                    }
+                                    let run = {
+                                        toast(ru ? "Ищу ваши сообщения…" : "Finding your messages…")
+                                        var ids: [EngineMessage.Id] = []
+                                        func fetch(_ state: SearchMessagesState?) {
+                                            let _ = (context.engine.messages.searchMessages(location: .peer(peerId: peerId, fromId: context.account.peerId, tags: nil, reactions: nil, threadId: nil, minDate: nil, maxDate: nil), query: "", state: state, limit: 100)
+                                            |> take(1)
+                                            |> deliverOnMainQueue).start(next: { result, nextState in
+                                                ids.append(contentsOf: result.messages.filter { !$0.flags.contains(.Incoming) }.map { $0.id })
+                                                if result.completed || result.messages.isEmpty || ids.count >= 20000 {
+                                                    let unique = Array(Set(ids))
+                                                    if unique.isEmpty {
+                                                        toast(ru ? "Ваших сообщений в этой группе нет." : "You have no messages in this group.")
+                                                        return
+                                                    }
+                                                    let _ = (context.engine.messages.deleteMessagesInteractively(messageIds: unique, type: .forEveryone)
+                                                    |> deliverOnMainQueue).start(completed: {
+                                                        toast(ru ? "Удалено сообщений: \(unique.count)" : "Deleted \(unique.count) messages")
+                                                    })
+                                                } else {
+                                                    fetch(nextState)
+                                                }
+                                            })
                                         }
-                                    })
-                                } else {
-                                    SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), true)
-                                }
-                            })))
+                                        fetch(nil)
+                                    }
+                                    chatListController.present(textAlertController(context: context, title: ru ? "Удалить все мои сообщения?" : "Delete all my messages?", text: ru ? "Все ваши сообщения в этой группе будут удалены у всех участников. Это нельзя отменить." : "Every message you sent in this group will be deleted for everyone. This can't be undone.", actions: [
+                                        TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                                        TextAlertAction(type: .destructiveAction, title: presentationData.strings.Common_Delete, action: { run() })
+                                    ]), in: .window(.root))
+                                })))
+                            }
+                            if SGSimpleSettings.shared.menuLockChat {
+                                let isLocked = SGSimpleSettings.shared.isLockedChat(peerId.toInt64())
+                                items.append(.action(ContextMenuActionItem(text: isLocked ? (ru ? "Снять Face ID" : "Remove Face ID Lock") : (ru ? "Закрыть Face ID" : "Lock with Face ID"), icon: { theme in generateTintedImage(image: UIImage(systemName: isLocked ? "lock.open" : "lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                    f(.default)
+                                    if isLocked {
+                                        HolyGramChatLocks.authenticate(reason: ru ? "Снять блокировку чата" : "Remove the chat lock", completion: { success in
+                                            if success {
+                                                SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), false)
+                                            }
+                                        })
+                                    } else {
+                                        SGSimpleSettings.shared.setLockedChat(peerId.toInt64(), true)
+                                    }
+                                })))
+                            }
                         }
                         //
                         

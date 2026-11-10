@@ -15,6 +15,18 @@ public extension SGSimpleSettings {
         self.hiddenChats = list
     }
 
+    func isSilentChat(_ peerIdValue: Int64) -> Bool {
+        return self.hgPro && self.silentChats.contains(String(peerIdValue))
+    }
+
+    func setSilentChat(_ peerIdValue: Int64, _ silent: Bool) {
+        var list = self.silentChats.filter { $0 != String(peerIdValue) }
+        if silent {
+            list.append(String(peerIdValue))
+        }
+        self.silentChats = list
+    }
+
     func isLockedChat(_ peerIdValue: Int64) -> Bool {
         return self.hgPro && self.lockedChats.contains(String(peerIdValue))
     }
@@ -108,5 +120,49 @@ public enum HolyGramDeletedIndex {
         self.lock.lock()
         defer { self.lock.unlock() }
         UserDefaults.standard.removeObject(forKey: self.key)
+    }
+}
+
+/// Messages the user bookmarked from the message menu, newest last.
+public enum HolyGramBookmarks {
+    private static let key = "holygram_bookmarks_v1"
+    private static let lock = NSLock()
+
+    private static func load() -> [String] {
+        return UserDefaults.standard.stringArray(forKey: self.key) ?? []
+    }
+
+    private static func token(peerId: Int64, namespace: Int32, id: Int32) -> String {
+        return "\(peerId):\(namespace):\(id)"
+    }
+
+    public static func contains(peerId: Int64, namespace: Int32, id: Int32) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.load().contains(self.token(peerId: peerId, namespace: namespace, id: id))
+    }
+
+    public static func set(peerId: Int64, namespace: Int32, id: Int32, bookmarked: Bool) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        let value = self.token(peerId: peerId, namespace: namespace, id: id)
+        var list = self.load().filter { $0 != value }
+        if bookmarked {
+            list.append(value)
+        }
+        UserDefaults.standard.set(list, forKey: self.key)
+    }
+
+    /// Newest first: (peerId, namespace, id).
+    public static func entries() -> [(Int64, Int32, Int32)] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.load().reversed().compactMap { line in
+            let parts = line.split(separator: ":")
+            guard parts.count == 3, let peerId = Int64(parts[0]), let namespace = Int32(parts[1]), let id = Int32(parts[2]) else {
+                return nil
+            }
+            return (peerId, namespace, id)
+        }
     }
 }

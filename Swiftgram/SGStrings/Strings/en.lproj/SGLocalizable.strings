@@ -329,3 +329,8 @@
 "Settings.HGPrivacy.HideSimilarChannels" = "Hide Similar Channels";
 "Settings.HGPrivacy.HiddenChats" = "Hidden Chats";
 "Settings.MessageHistory.Browse" = "Deleted Messages";
+"Settings.MessageHistory.Bookmarks" = "Bookmarks";
+"Settings.MessageHistory.Drafts" = "Drafts";
+"Settings.MessageHistory.Highlight" = "Highlighted Words";
+"Settings.HGPrivacy.ArchiveInactive" = "Archive Inactive Channels";
+"Settings.MessageHistory.Mentions" = "Mentions & Reactions";

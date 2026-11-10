@@ -324,3 +324,8 @@
 "Settings.HGPrivacy.HideSimilarChannels" = "Скрыть «Похожие каналы»";
 "Settings.HGPrivacy.HiddenChats" = "Скрытые чаты";
 "Settings.MessageHistory.Browse" = "Удалённые сообщения";
+"Settings.MessageHistory.Bookmarks" = "Закладки";
+"Settings.MessageHistory.Drafts" = "Черновики";
+"Settings.MessageHistory.Highlight" = "Подсветка слов";
+"Settings.HGPrivacy.ArchiveInactive" = "Архивировать неактивные каналы";
+"Settings.MessageHistory.Mentions" = "Упоминания и реакции";
