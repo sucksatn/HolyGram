@@ -60,6 +60,7 @@ public class SGSimpleSettings {
             { let _ = self.ghostNoReadReceipts },
             { let _ = self.ghostNoTyping },
             { let _ = self.ghostNoStoryViews },
+            { let _ = self.ghostReadOnReply },
             { let _ = self.saveDeletedMessages },
             { let _ = self.saveEditHistory },
             { let _ = self.allChatsHidden },
@@ -120,6 +121,7 @@ public class SGSimpleSettings {
         case ghostNoReadReceipts
         case ghostNoTyping
         case ghostNoStoryViews
+        case ghostReadOnReply
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -289,6 +291,7 @@ public class SGSimpleSettings {
         Keys.ghostNoReadReceipts.rawValue: true,
         Keys.ghostNoTyping.rawValue: true,
         Keys.ghostNoStoryViews.rawValue: true,
+        Keys.ghostReadOnReply.rawValue: true,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -435,6 +438,10 @@ public class SGSimpleSettings {
 
     @UserDefault(key: Keys.ghostNoStoryViews.rawValue)
     public var ghostNoStoryViews: Bool
+
+    /// Send the read receipt for a chat when replying in it, even in ghost mode.
+    @UserDefault(key: Keys.ghostReadOnReply.rawValue)
+    public var ghostReadOnReply: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

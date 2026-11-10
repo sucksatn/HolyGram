@@ -53,6 +53,7 @@ private enum SGBoolSetting: String {
     case ghostNoReadReceipts
     case ghostNoTyping
     case ghostNoStoryViews
+    case ghostReadOnReply
     case saveDeletedMessages
     case saveEditHistory
     case hidePhoneInSettings
@@ -185,6 +186,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: i18n("Settings.Ghost.Enabled", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: SGSimpleSettings.shared.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoReadReceipts, value: SGSimpleSettings.shared.ghostNoReadReceipts, text: i18n("Settings.Ghost.NoReadReceipts", lang), enabled: ghostOn))
+    entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: SGSimpleSettings.shared.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && SGSimpleSettings.shared.ghostNoReadReceipts))
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: SGSimpleSettings.shared.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
     entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: SGSimpleSettings.shared.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
     entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang)))
@@ -436,10 +438,13 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.ghostHideOnline = value
         case .ghostNoReadReceipts:
             SGSimpleSettings.shared.ghostNoReadReceipts = value
+            simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
         case .ghostNoTyping:
             SGSimpleSettings.shared.ghostNoTyping = value
         case .ghostNoStoryViews:
             SGSimpleSettings.shared.ghostNoStoryViews = value
+        case .ghostReadOnReply:
+            SGSimpleSettings.shared.ghostReadOnReply = value
         case .saveDeletedMessages:
             SGSimpleSettings.shared.saveDeletedMessages = value
         case .saveEditHistory:

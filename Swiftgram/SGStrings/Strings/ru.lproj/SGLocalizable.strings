@@ -285,7 +285,7 @@
 "Settings.Ghost.NoReadReceipts" = "Не отправлять отметки о прочтении";
 "Settings.Ghost.NoTyping" = "Не отправлять «печатает…»";
 "Settings.Ghost.NoStoryViews" = "Анонимный просмотр историй";
-"Settings.Ghost.Notice" = "Прочитанные вами сообщения остаются непрочитанными у отправителя.";
+"Settings.Ghost.Notice" = "Прочитанные вами сообщения остаются непрочитанными у отправителя. После отправки сообщения статус сразу возвращается в «не в сети».";
 
 /* HolyGram: message history */
 "Settings.MessageHistory.Header" = "ИСТОРИЯ СООБЩЕНИЙ";
@@ -295,3 +295,4 @@
 "Message.HolyGram.EditHistory" = "История правок";
 "Message.HolyGram.EditHistory.Current" = "Сейчас";
 "Message.HolyGram.EditHistory.Original" = "Исходный текст";
+"Settings.Ghost.ReadOnReply" = "Отмечать прочитанным при ответе";

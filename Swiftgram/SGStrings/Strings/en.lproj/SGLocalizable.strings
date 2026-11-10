@@ -290,7 +290,7 @@
 "Settings.Ghost.NoReadReceipts" = "Don't Send Read Receipts";
 "Settings.Ghost.NoTyping" = "Don't Send “Typing…”";
 "Settings.Ghost.NoStoryViews" = "View Stories Anonymously";
-"Settings.Ghost.Notice" = "Messages you read stay unread for the sender.";
+"Settings.Ghost.Notice" = "Messages you read stay unread for the sender. Your status goes back to offline right after you send a message.";
 
 /* HolyGram: message history */
 "Settings.MessageHistory.Header" = "MESSAGE HISTORY";
@@ -300,3 +300,4 @@
 "Message.HolyGram.EditHistory" = "Edit History";
 "Message.HolyGram.EditHistory.Current" = "Current";
 "Message.HolyGram.EditHistory.Original" = "Original";
+"Settings.Ghost.ReadOnReply" = "Mark as Read When Replying";

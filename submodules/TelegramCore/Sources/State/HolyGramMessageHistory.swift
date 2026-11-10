@@ -1,6 +1,8 @@
 // MARK: HolyGram
 import Foundation
 import Postbox
+import SwiftSignalKit
+internal import TelegramApi
 import SGSimpleSettings
 
 private func holyGramStoreMessage(_ message: Message, attributes: [MessageAttribute]) -> StoreMessage {
@@ -84,4 +86,54 @@ func holyGramMessageWithEditHistory(previous: Message, updated: StoreMessage) ->
     var attributes = updated.attributes.filter { !($0 is HolyGramEditHistoryMessageAttribute) }
     attributes.append(HolyGramEditHistoryMessageAttribute(entries: entries))
     return updated.withUpdatedAttributes(attributes)
+}
+
+// MARK: HolyGram ghost mode: after sending
+
+/// Telegram marks the account online when it sends a message. In ghost mode, go back
+/// offline right away, and optionally send the read receipt for the chat replied to.
+func holyGramAfterMessageSent(postbox: Postbox, network: Network, stateManager: AccountStateManager, peerId: PeerId) {
+    let settings = SGSimpleSettings.shared
+    if settings.ghostBlocksOnline {
+        let _ = network.request(Api.functions.account.updateStatus(offline: .boolTrue)).start()
+    }
+    if settings.ghostBlocksReadReceipts && settings.ghostReadOnReply {
+        let _ = (postbox.transaction { transaction -> (Peer, MessageId.Id)? in
+            guard let peer = transaction.getPeer(peerId), let readStates = transaction.getPeerReadStates(peerId) else {
+                return nil
+            }
+            for (namespace, readState) in readStates where namespace == Namespaces.Message.Cloud {
+                if case let .idBased(maxIncomingReadId, _, _, _, _) = readState, maxIncomingReadId > 0 {
+                    return (peer, maxIncomingReadId)
+                }
+            }
+            return nil
+        }
+        |> mapToSignal { value -> Signal<Never, NoError> in
+            guard let (peer, maxId) = value else {
+                return .complete()
+            }
+            if let channel = peer as? TelegramChannel, let inputChannel = apiInputChannel(channel) {
+                return network.request(Api.functions.channels.readHistory(channel: inputChannel, maxId: maxId))
+                |> `catch` { _ -> Signal<Api.Bool, NoError> in
+                    return .complete()
+                }
+                |> ignoreValues
+            } else if let inputPeer = apiInputPeer(peer), peerId.namespace == Namespaces.Peer.CloudUser || peerId.namespace == Namespaces.Peer.CloudGroup {
+                return network.request(Api.functions.messages.readHistory(peer: inputPeer, maxId: maxId))
+                |> map(Optional.init)
+                |> `catch` { _ -> Signal<Api.messages.AffectedMessages?, NoError> in
+                    return .single(nil)
+                }
+                |> mapToSignal { result -> Signal<Never, NoError> in
+                    if let result, case let .affectedMessages(data) = result {
+                        stateManager.addUpdateGroups([.updatePts(pts: data.pts, ptsCount: data.ptsCount)])
+                    }
+                    return .complete()
+                }
+            } else {
+                return .complete()
+            }
+        }).start()
+    }
 }
