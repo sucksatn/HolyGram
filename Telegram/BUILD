@@ -459,6 +459,7 @@ plist_fragment(
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>sg</string>
+                <string>holygram</string>
             </array>
         </dict>
     </array>

@@ -1596,6 +1596,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             actions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
             actions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
             actions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            actions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if !message.holyGramEditHistory.isEmpty {
             actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))

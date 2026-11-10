@@ -16,6 +16,7 @@ import TelegramCore
 import TelegramPresentationData
 import UIKit
 import UserNotifications
+import SaveToCameraRoll
 import SGSimpleSettings
 import ChatControllerInteraction
 import ChatPresentationInterfaceState
@@ -25,6 +26,20 @@ func sgHandleInternalUrlRoute(context: AccountContext, parsedUrl: URL, navigatio
         return false
     }
     switch path {
+    // MARK: HolyGram: holygram://sg/ghost, ghost_on, ghost_off — for Shortcuts and Siri
+    case "ghost", "ghost_on", "ghost_off":
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+        let text: String
+        if !SGSimpleSettings.shared.hgPro {
+            text = ru ? "Режим призрака доступен в HolyGram Pro" : "Ghost mode needs HolyGram Pro"
+        } else {
+            let enabled = path == "ghost" ? !SGSimpleSettings.shared.ghostMode : path == "ghost_on"
+            SGSimpleSettings.shared.ghostMode = enabled
+            text = enabled ? (ru ? "Режим призрака включён" : "Ghost mode is on") : (ru ? "Режим призрака выключен" : "Ghost mode is off")
+        }
+        context.sharedContext.presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 2.5, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+        return true
     case "debug":
         if let debugController = context.sharedContext.makeDebugSettingsController(context: context) {
             navigationController?.pushViewController(debugController)
@@ -105,6 +120,7 @@ enum SGContextMenuActionFactory {
     case repeatMessage(context: AccountContext) // MARK: HolyGram
     case bookmark(context: AccountContext) // MARK: HolyGram
     case chatStats(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case saveAllMedia(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case remind(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
 }
 
@@ -149,6 +165,16 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             f(.default)
             hgShowChatStatistics(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, peerId: message.id.peerId, ru: ru)
         }))
+    case let .saveAllMedia(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Сохранить все фото и видео чата" : "Save All Chat Photos & Videos", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "square.and.arrow.down.on.square"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgSaveAllChatMedia(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, peerId: message.id.peerId, ru: ru)
+            }
+        }))
     case .bookmark:
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
         let isBookmarked = HolyGramBookmarks.contains(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id)
@@ -178,6 +204,72 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
         }))
     }
+}
+
+// MARK: HolyGram: every photo and video of a chat into the Photos library
+private func hgSaveAllChatMedia(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, peerId: PeerId, ru: Bool) {
+    guard let navigationController = controllerInteraction.navigationController(), var presenter = navigationController.view.window?.rootViewController else {
+        return
+    }
+    while let presented = presenter.presentedViewController {
+        presenter = presented
+    }
+    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+    let toast: (String) -> Void = { text in
+        controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+    }
+    let maxItems = 2000
+
+    let start = {
+        toast(ru ? "Ищу фото и видео в чате…" : "Looking for photos and videos…")
+        var collected: [(EngineRawMessage, Media)] = []
+        func fetchPage(_ state: SearchMessagesState?) {
+            let _ = (context.engine.messages.searchMessages(location: .peer(peerId: peerId, fromId: nil, tags: .photoOrVideo, reactions: nil, threadId: nil, minDate: nil, maxDate: nil), query: "", state: state, limit: 100)
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { result, nextState in
+                for message in result.messages {
+                    for media in message.media where media is TelegramMediaImage || (media as? TelegramMediaFile)?.isVideo == true {
+                        collected.append((message, media))
+                    }
+                }
+                if result.completed || result.messages.isEmpty || collected.count >= maxItems {
+                    saveAll(Array(collected.prefix(maxItems)))
+                } else {
+                    fetchPage(nextState)
+                }
+            })
+        }
+        func saveAll(_ items: [(EngineRawMessage, Media)]) {
+            if items.isEmpty {
+                toast(ru ? "В этом чате нет фото и видео." : "No photos or videos in this chat.")
+                return
+            }
+            toast(ru ? "Сохраняю \(items.count) файлов в «Фото». Не закрывайте HolyGram." : "Saving \(items.count) files to Photos. Keep HolyGram open.")
+            var saved = 0
+            func next(_ index: Int) {
+                if index >= items.count {
+                    toast(ru ? "Готово: сохранено \(saved) из \(items.count)." : "Done: saved \(saved) of \(items.count).")
+                    return
+                }
+                let (message, media) = items[index]
+                let _ = (saveToCameraRoll(context: context, userLocation: .peer(peerId), mediaReference: .message(message: MessageReference(message), media: media))
+                |> deliverOnMainQueue).start(completed: {
+                    saved += 1
+                    if saved % 50 == 0 {
+                        toast(ru ? "Сохранено \(saved) из \(items.count)…" : "Saved \(saved) of \(items.count)…")
+                    }
+                    next(index + 1)
+                })
+            }
+            next(0)
+        }
+        fetchPage(nil)
+    }
+
+    let alert = UIAlertController(title: ru ? "Сохранить все фото и видео?" : "Save all photos and videos?", message: ru ? "Все фото и видео из этого чата (до \(maxItems)) будут скачаны и сохранены в «Фото». Это может занять время и место." : "All photos and videos from this chat (up to \(maxItems)) will be downloaded and saved to Photos. This can take a while and use storage.", preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: presentationData.strings.Common_Cancel, style: .cancel))
+    alert.addAction(UIAlertAction(title: ru ? "Сохранить" : "Save", style: .default, handler: { _ in start() }))
+    presenter.present(alert, animated: true)
 }
 
 // MARK: HolyGram: who writes how much and when, over the messages stored on this device
