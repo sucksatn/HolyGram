@@ -62,6 +62,8 @@ private enum SGBoolSetting: String {
     case hideSponsoredMessages
     case streamerMode
     case hidePaidFeatureRows
+    case confirmStickerSend
+    case confirmVoiceSend
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -244,6 +246,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowRegDate.Notice", lang)))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .showCreationDate, value: SGSimpleSettings.shared.showCreationDate, text: i18n("Settings.ShowCreationDate", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowCreationDate.Notice", lang)))
+    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmStickerSend, value: SGSimpleSettings.shared.confirmStickerSend, text: i18n("Settings.HG.ConfirmSticker", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmVoiceSend, value: SGSimpleSettings.shared.confirmVoiceSend, text: i18n("Settings.HG.ConfirmVoice", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmCalls, value: SGSimpleSettings.shared.confirmCalls, text: i18n("Settings.CallConfirmation", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.CallConfirmation.Notice", lang)))
     
@@ -476,6 +480,10 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             askForRestart?()
         case .hidePaidFeatureRows:
             SGSimpleSettings.shared.hidePaidFeatureRows = value
+        case .confirmStickerSend:
+            SGSimpleSettings.shared.confirmStickerSend = value
+        case .confirmVoiceSend:
+            SGSimpleSettings.shared.confirmVoiceSend = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

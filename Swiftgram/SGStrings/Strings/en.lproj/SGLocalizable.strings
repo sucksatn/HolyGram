@@ -310,3 +310,5 @@
 "Settings.HGPrivacy.StreamerMode" = "Streamer Mode";
 "Settings.HGPrivacy.Notice" = "Streamer Mode hides HolyGram from screenshots, screen recordings and screen sharing.";
 "Settings.HGPrivacy.HidePaidRows" = "Hide Premium, Stars and Gifts";
+"Settings.HG.ConfirmSticker" = "Confirm Stickers and GIFs";
+"Settings.HG.ConfirmVoice" = "Confirm Voice Messages";

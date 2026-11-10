@@ -305,3 +305,5 @@
 "Settings.HGPrivacy.StreamerMode" = "Режим стримера";
 "Settings.HGPrivacy.Notice" = "Режим стримера скрывает HolyGram на скриншотах, записи экрана и при демонстрации экрана.";
 "Settings.HGPrivacy.HidePaidRows" = "Скрыть Premium, Stars и подарки";
+"Settings.HG.ConfirmSticker" = "Подтверждать стикеры и GIF";
+"Settings.HG.ConfirmVoice" = "Подтверждать голосовые";

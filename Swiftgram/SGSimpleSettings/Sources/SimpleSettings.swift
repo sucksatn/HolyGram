@@ -127,6 +127,8 @@ public class SGSimpleSettings {
         case keepSelfDestructingMedia
         case streamerMode
         case hidePaidFeatureRows
+        case confirmStickerSend
+        case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -303,6 +305,8 @@ public class SGSimpleSettings {
         Keys.keepSelfDestructingMedia.rawValue: false,
         Keys.streamerMode.rawValue: false,
         Keys.hidePaidFeatureRows.rawValue: false,
+        Keys.confirmStickerSend.rawValue: false,
+        Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -475,6 +479,13 @@ public class SGSimpleSettings {
     /// Hide the Premium, Stars, TON, Business and Gifts rows in Settings.
     @UserDefault(key: Keys.hidePaidFeatureRows.rawValue)
     public var hidePaidFeatureRows: Bool
+
+    // MARK: HolyGram: ask before sending
+    @UserDefault(key: Keys.confirmStickerSend.rawValue)
+    public var confirmStickerSend: Bool
+
+    @UserDefault(key: Keys.confirmVoiceSend.rawValue)
+    public var confirmVoiceSend: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)
