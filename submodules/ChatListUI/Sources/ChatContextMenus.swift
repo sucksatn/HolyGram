@@ -404,6 +404,43 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                     f(.default)
                                 })))
                             }
+                            // MARK: HolyGram: a private note about the chat
+                            if SGSimpleSettings.shared.menuChatNote {
+                                let note = HolyGramNotes.note(peerId: peerId.toInt64())
+                                let noteTitle: String
+                                if let note {
+                                    noteTitle = (ru ? "Заметка: " : "Note: ") + String(note.replacingOccurrences(of: "\n", with: " ").prefix(40))
+                                } else {
+                                    noteTitle = ru ? "Заметка о чате" : "Chat Note"
+                                }
+                                items.append(.action(ContextMenuActionItem(text: noteTitle, icon: { theme in generateTintedImage(image: UIImage(systemName: "note.text"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    guard var presenter = chatListController?.view.window?.rootViewController else {
+                                        return
+                                    }
+                                    while let presented = presenter.presentedViewController {
+                                        presenter = presented
+                                    }
+                                    let alert = UIAlertController(title: ru ? "Заметка о чате" : "Chat Note", message: ru ? "Видна только вам и хранится на этом устройстве." : "Only you can see it; it stays on this device.", preferredStyle: .alert)
+                                    alert.addTextField { field in
+                                        field.text = note
+                                        field.placeholder = ru ? "Текст заметки" : "Note text"
+                                        field.autocapitalizationType = .sentences
+                                    }
+                                    alert.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel))
+                                    if note != nil {
+                                        alert.addAction(UIAlertAction(title: strings.Common_Delete, style: .destructive, handler: { _ in
+                                            HolyGramNotes.setNote(peerId: peerId.toInt64(), text: "")
+                                        }))
+                                    }
+                                    alert.addAction(UIAlertAction(title: ru ? "Сохранить" : "Save", style: .default, handler: { [weak alert] _ in
+                                        HolyGramNotes.setNote(peerId: peerId.toInt64(), text: alert?.textFields?.first?.text ?? "")
+                                    }))
+                                    Queue.mainQueue().after(0.3) {
+                                        presenter.present(alert, animated: true)
+                                    }
+                                })))
+                            }
                             // MARK: HolyGram: copy the chat ID (Bot API style) and its link
                             if SGSimpleSettings.shared.menuCopyId {
                                 items.append(.action(ContextMenuActionItem(text: ru ? "Скопировать ID и ссылку" : "Copy ID and Link", icon: { theme in generateTintedImage(image: UIImage(systemName: "number"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in

@@ -64,6 +64,10 @@ private enum SGBoolSetting: String {
     case menuChatStats
     case menuSaveAllMedia
     case menuEditHistory
+    case menuExportChat
+    case menuFirstMessage
+    case menuTemplates
+    case menuChatNote
     // MARK: HolyGram ghost mode
     case ghostMode
     case ghostHideOnline
@@ -172,6 +176,8 @@ private enum SGDisclosureLink: String {
     case pageMenus // MARK: HolyGram
     case pageTools // MARK: HolyGram
     case pageSwiftgram // MARK: HolyGram
+    case holyGramNotes // MARK: HolyGram
+    case holyGramTemplates // MARK: HolyGram
     case holyGramHiddenChats // MARK: HolyGram
     case holyGramDeletedMessages // MARK: HolyGram
     case holyGramBookmarks // MARK: HolyGram
@@ -244,7 +250,7 @@ public enum HolyGramSettingsPage: String {
 private let holyGramOwnSections: Set<SGControllerSection> = [.holyGramPro, .holyGramNav, .ghost, .messageHistory, .holyGramPrivacy, .holyGramMenus, .holyGramTools]
 
 // MARK: HolyGram: the view controller to present plain UIKit alerts from
-private func hgTopViewController() -> UIViewController? {
+func hgTopViewController() -> UIViewController? {
     var presenter = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.windows.first(where: \.isKeyWindow) }.first?.rootViewController
     while let presented = presenter?.presentedViewController {
         presenter = presented
@@ -386,6 +392,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSilentChat, value: settings.menuSilentChat, text: ru ? "🔕  Отправлять без звука" : "🔕  Always Send Silently", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyId, value: settings.menuCopyId, text: ru ? "#️⃣  Скопировать ID и ссылку" : "#️⃣  Copy ID and Link", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuDeleteMine, value: settings.menuDeleteMine, text: ru ? "🗑  Удалить все мои сообщения" : "🗑  Delete All My Messages", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatNote, value: settings.menuChatNote, text: ru ? "📒  Заметка о чате" : "📒  Chat Note", enabled: true))
     entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ СООБЩЕНИЯ (ДОЛГОЕ НАЖАТИЕ НА СООБЩЕНИЕ)" : "MESSAGE MENU (LONG-PRESS A MESSAGE)", badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .contextShowRepeat, value: settings.contextShowRepeat, text: "➕  +1", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuEditHistory, value: settings.menuEditHistory, text: ru ? "✏️  История правок" : "✏️  Edit History", enabled: true))
@@ -393,6 +400,9 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuRemind, value: settings.menuRemind, text: ru ? "⏰  Напомнить" : "⏰  Remind Me", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatStats, value: settings.menuChatStats, text: ru ? "📊  Статистика чата" : "📊  Chat Statistics", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSaveAllMedia, value: settings.menuSaveAllMedia, text: ru ? "📥  Сохранить все фото и видео" : "📥  Save All Photos & Videos", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuTemplates, value: settings.menuTemplates, text: ru ? "🗒  Шаблоны" : "🗒  Templates", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuExportChat, value: settings.menuExportChat, text: ru ? "📤  Экспорт чата в текст" : "📤  Export Chat as Text", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuFirstMessage, value: settings.menuFirstMessage, text: ru ? "⏮  К началу чата" : "⏮  Go to First Message", enabled: true))
     entries.append(.notice(id: id.count, section: .holyGramMenus, text: ru ? "Выключенные пункты не показываются в меню. Функции Pro появляются в меню только с HolyGram Pro." : "Turned-off items don't appear in menus. Pro items appear only with HolyGram Pro."))
 
     // 🧰 Tools
@@ -404,7 +414,11 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramHiddenChats, text: "🙈  " + i18n("Settings.HGPrivacy.HiddenChats", lang) + (hasPro ? (settings.hiddenChats.isEmpty ? "" : " (\(settings.hiddenChats.count))") : lock)))
     let highlight = settings.highlightKeywords.joined(separator: ", ")
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgEditHighlight"), text: "🖍  " + i18n("Settings.MessageHistory.Highlight", lang) + lock + (highlight.isEmpty ? "" : ": " + highlight), kind: .generic))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramTemplates, text: (ru ? "🗒  Шаблоны сообщений" : "🗒  Message Templates") + lock))
+    entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramNotes, text: (ru ? "📒  Заметки о чатах" : "📒  Chat Notes") + lock))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgArchiveInactive"), text: "📦  " + i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgReadAll"), text: (ru ? "✅  Прочитать все чаты" : "✅  Mark All Chats as Read") + lock, kind: .generic))
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgMuteChannels"), text: (ru ? "🔇  Выключить звук всех каналов" : "🔇  Mute All Channels") + lock, kind: .generic))
 
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -700,6 +714,14 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.menuSaveAllMedia = value
         case .menuEditHistory:
             SGSimpleSettings.shared.menuEditHistory = value
+        case .menuExportChat:
+            SGSimpleSettings.shared.menuExportChat = value
+        case .menuFirstMessage:
+            SGSimpleSettings.shared.menuFirstMessage = value
+        case .menuTemplates:
+            SGSimpleSettings.shared.menuTemplates = value
+        case .menuChatNote:
+            SGSimpleSettings.shared.menuChatNote = value
         case .hideSponsoredMessages:
             SGSimpleSettings.shared.hideSponsoredMessages = value
         case .streamerMode:
@@ -1035,6 +1057,10 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                     }
                     pushControllerImpl?(holyGramHiddenChatsController(context: context))
                 })
+            case .holyGramNotes:
+                pushControllerImpl?(holyGramNotesController(context: context))
+            case .holyGramTemplates:
+                pushControllerImpl?(holyGramTemplatesController(context: context))
             case .pageGhost:
                 pushControllerImpl?(sgSettingsController(context: context, page: .ghost))
             case .pageHistory:
@@ -1083,6 +1109,52 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 simplePromise.set(true)
             }))
             hgTopViewController()?.present(alert, animated: true)
+            return
+        }
+        // MARK: HolyGram: mark every chat read, or mute every channel
+        if actionType == AnyHashable("hgReadAll") || actionType == AnyHashable("hgMuteChannels") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                let alert = UIAlertController(title: nil, message: ru ? "Эта функция работает с HolyGram Pro." : "This needs HolyGram Pro.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                hgTopViewController()?.present(alert, animated: true)
+                return
+            }
+            if actionType == AnyHashable("hgReadAll") {
+                let note = SGSimpleSettings.shared.ghostBlocksReadReceipts ? (ru ? "\n\nРежим призрака включён: собеседники не увидят, что вы прочитали." : "\n\nGhost mode is on: nobody will see that you read them.") : ""
+                let alert = UIAlertController(title: ru ? "Прочитать все чаты?" : "Mark all chats as read?", message: (ru ? "Все непрочитанные чаты, включая архив, будут отмечены прочитанными." : "Every unread chat, the archive included, will be marked as read.") + note, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+                alert.addAction(UIAlertAction(title: ru ? "Прочитать" : "Mark as Read", style: .default, handler: { _ in
+                    let _ = context.engine.messages.markAllChatsAsReadInteractively(items: [(groupId: .root, filterPredicate: nil), (groupId: .archive, filterPredicate: nil)]).start()
+                }))
+                hgTopViewController()?.present(alert, animated: true)
+                return
+            }
+            let _ = (context.engine.messages.chatList(group: .root, count: 3000)
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { list in
+                let peerIds = list.items.compactMap { item -> EnginePeer.Id? in
+                    guard case let .channel(channel)? = item.renderedPeer.peer, case .broadcast = channel.info, !item.isMuted else {
+                        return nil
+                    }
+                    return channel.id
+                }
+                let alert: UIAlertController
+                if peerIds.isEmpty {
+                    alert = UIAlertController(title: nil, message: ru ? "Все каналы уже без звука." : "All channels are already muted.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                } else {
+                    alert = UIAlertController(title: ru ? "Выключить звук каналов?" : "Mute channels?", message: ru ? "Каналов со звуком: \(peerIds.count). Уведомления от них будут выключены навсегда." : "\(peerIds.count) channels aren't muted. They'll be muted forever.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+                    alert.addAction(UIAlertAction(title: ru ? "Выключить" : "Mute", style: .default, handler: { _ in
+                        for peerId in peerIds {
+                            let _ = context.engine.peers.updatePeerMuteSetting(peerId: peerId, threadId: nil, muteInterval: Int32.max).start()
+                        }
+                    }))
+                }
+                hgTopViewController()?.present(alert, animated: true)
+            })
             return
         }
         // MARK: HolyGram: archive channels without posts for 30 days

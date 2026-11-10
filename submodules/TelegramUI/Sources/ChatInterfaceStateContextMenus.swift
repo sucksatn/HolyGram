@@ -1597,6 +1597,11 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             if SGSimpleSettings.shared.menuRemind { actions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
             if SGSimpleSettings.shared.menuChatStats { actions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
             if SGSimpleSettings.shared.menuSaveAllMedia { actions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuTemplates && canSendMessagesToChat(chatPresentationInterfaceState) { actions.append(sgMakeContextMenuAction(.templates(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuExportChat && !message.isCopyProtected() { actions.append(sgMakeContextMenuAction(.exportChat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+        }
+        if SGSimpleSettings.shared.menuFirstMessage && SGSimpleSettings.shared.hgPro, case .peer = chatPresentationInterfaceState.chatLocation, message.id.namespace == Namespaces.Message.Cloud {
+            actions.append(sgMakeContextMenuAction(.firstMessage(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.menuEditHistory && !message.holyGramEditHistory.isEmpty {
             actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))

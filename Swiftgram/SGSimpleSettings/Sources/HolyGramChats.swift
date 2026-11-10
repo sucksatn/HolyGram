@@ -166,3 +166,69 @@ public enum HolyGramBookmarks {
         }
     }
 }
+
+// MARK: HolyGram: a private note about a chat, kept on this device only
+public enum HolyGramNotes {
+    private static let key = "holygram_chat_notes_v1"
+    private static let lock = NSLock()
+
+    private static func load() -> [String: String] {
+        return (UserDefaults.standard.dictionary(forKey: self.key) as? [String: String]) ?? [:]
+    }
+
+    public static func note(peerId: Int64) -> String? {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.load()[String(peerId)]
+    }
+
+    /// An empty text removes the note.
+    public static func setNote(peerId: Int64, text: String) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        var notes = self.load()
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        notes[String(peerId)] = trimmed.isEmpty ? nil : trimmed
+        UserDefaults.standard.set(notes, forKey: self.key)
+    }
+
+    public static func all() -> [(peerId: Int64, text: String)] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.load().compactMap { key, value in
+            Int64(key).map { (peerId: $0, text: value) }
+        }
+    }
+}
+
+// MARK: HolyGram: saved message templates, newest last
+public enum HolyGramTemplates {
+    private static let key = "holygram_templates_v1"
+    private static let lock = NSLock()
+    public static let maxCount = 50
+
+    public static func all() -> [String] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return UserDefaults.standard.stringArray(forKey: self.key) ?? []
+    }
+
+    public static func add(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return
+        }
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        var list = (UserDefaults.standard.stringArray(forKey: self.key) ?? []).filter { $0 != trimmed }
+        list.append(trimmed)
+        UserDefaults.standard.set(Array(list.suffix(self.maxCount)), forKey: self.key)
+    }
+
+    public static func remove(_ text: String) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        let list = (UserDefaults.standard.stringArray(forKey: self.key) ?? []).filter { $0 != text }
+        UserDefaults.standard.set(list, forKey: self.key)
+    }
+}
