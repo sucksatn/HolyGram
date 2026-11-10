@@ -153,6 +153,7 @@ private enum SGDisclosureLink: String {
     case holyGramProContact // MARK: HolyGram
     case holyGramHiddenChats // MARK: HolyGram
     case holyGramDeletedMessages // MARK: HolyGram
+    case holyGramBookmarks // MARK: HolyGram
     case contentSettings
     case languageSettings
 }
@@ -261,6 +262,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     } else {
         id.increment(1)
     }
+    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramBookmarks, text: i18n("Settings.MessageHistory.Bookmarks", lang) + lock))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDeletedMessages, text: i18n("Settings.MessageHistory.Browse", lang) + lock))
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
@@ -845,6 +847,11 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .holyGramBookmarks:
+                guard SGSimpleSettings.shared.hgPro else {
+                    return
+                }
+                pushControllerImpl?(holyGramBookmarksController(context: context))
             case .holyGramDeletedMessages:
                 guard SGSimpleSettings.shared.hgPro else {
                     return

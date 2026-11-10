@@ -15,6 +15,8 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import UIKit
+import UserNotifications
+import SGSimpleSettings
 import ChatControllerInteraction
 import ChatPresentationInterfaceState
 
@@ -101,6 +103,8 @@ enum SGContextMenuActionFactory {
     case hideForwardName(interfaceInteraction: ChatPanelInterfaceInteraction, selectAll: Bool, isImage: Bool, messages: [EngineRawMessage])
     case editHistory(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case repeatMessage(context: AccountContext) // MARK: HolyGram
+    case bookmark(context: AccountContext) // MARK: HolyGram
+    case remind(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
 }
 
 func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) -> ContextMenuItem {
@@ -136,6 +140,25 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
                 .forward(source: message.id, threadId: message.threadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: true, hideCaptions: false)], correlationId: nil)
             ]).startStandalone()
         }))
+    case .bookmark:
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        let isBookmarked = HolyGramBookmarks.contains(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id)
+        return .action(ContextMenuActionItem(text: isBookmarked ? (ru ? "Убрать из закладок" : "Remove Bookmark") : (ru ? "В закладки" : "Bookmark"), icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: isBookmarked ? "bookmark.slash" : "bookmark"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            HolyGramBookmarks.set(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id, bookmarked: !isBookmarked)
+            f(.default)
+        }))
+    case let .remind(controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Напомнить" : "Remind Me", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "bell"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgPresentReminderOptions(controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
+            }
+        }))
     case let .editHistory(controllerInteraction):
         return .action(ContextMenuActionItem(text: i18n("Message.HolyGram.EditHistory", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)
@@ -146,6 +169,57 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
         }))
     }
+}
+
+// MARK: HolyGram: local reminder about a message
+private func hgPresentReminderOptions(controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage, ru: Bool) {
+    guard let navigationController = controllerInteraction.navigationController(), var presenter = navigationController.view.window?.rootViewController else {
+        return
+    }
+    while let presented = presenter.presentedViewController {
+        presenter = presented
+    }
+    let chatTitle = chatPresentationInterfaceState.renderedPeer?.peer.flatMap { EnginePeer($0).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder) } ?? "HolyGram"
+    var body = message.text.replacingOccurrences(of: "\n", with: " ")
+    if body.isEmpty {
+        body = ru ? "Сообщение с медиа" : "Message with media"
+    }
+
+    func schedule(after seconds: TimeInterval?, at components: DateComponents?) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound], completionHandler: { granted, _ in
+            guard granted else {
+                return
+            }
+            let content = UNMutableNotificationContent()
+            content.title = (ru ? "Напоминание: " : "Reminder: ") + chatTitle
+            content.body = String(body.prefix(300))
+            content.sound = .default
+            let trigger: UNNotificationTrigger
+            if let components {
+                trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            } else {
+                trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(60.0, seconds ?? 3600.0), repeats: false)
+            }
+            center.add(UNNotificationRequest(identifier: "holygram-reminder-\(UUID().uuidString)", content: content, trigger: trigger))
+        })
+    }
+
+    let sheet = UIAlertController(title: ru ? "Напомнить о сообщении" : "Remind me about this message", message: nil, preferredStyle: .actionSheet)
+    sheet.addAction(UIAlertAction(title: ru ? "Через 1 час" : "In 1 hour", style: .default, handler: { _ in schedule(after: 3600, at: nil) }))
+    sheet.addAction(UIAlertAction(title: ru ? "Через 3 часа" : "In 3 hours", style: .default, handler: { _ in schedule(after: 3 * 3600, at: nil) }))
+    sheet.addAction(UIAlertAction(title: ru ? "Завтра в 9:00" : "Tomorrow at 9:00", style: .default, handler: { _ in
+        var tomorrow = Calendar.current.dateComponents([.year, .month, .day], from: Date().addingTimeInterval(86400))
+        tomorrow.hour = 9
+        tomorrow.minute = 0
+        schedule(after: nil, at: tomorrow)
+    }))
+    sheet.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_Cancel, style: .cancel, handler: nil))
+    if let popover = sheet.popoverPresentationController {
+        popover.sourceView = presenter.view
+        popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+    }
+    presenter.present(sheet, animated: true)
 }
 
 // MARK: HolyGram
