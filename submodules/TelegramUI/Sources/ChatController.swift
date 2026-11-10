@@ -242,6 +242,34 @@ struct ScrolledToMessageId: Equatable {
 }
 
 public final class ChatControllerImpl: TelegramBaseController, ChatController, GalleryHiddenMediaTarget, UIDropInteractionDelegate {    
+    // MARK: HolyGram: "send this?" confirmation for stickers, GIFs and voice messages
+    var holyGramSkipSendConfirmation = false
+    
+    func holyGramConfirmSend(kind: String, send: @escaping () -> Void) {
+        let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+        let isRussian = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+        let text: String
+        switch kind {
+        case "gif":
+            text = isRussian ? "Отправить GIF?" : "Send GIF?"
+        case "voice":
+            text = isRussian ? "Отправить голосовое сообщение?" : "Send voice message?"
+        default:
+            text = isRussian ? "Отправить стикер?" : "Send sticker?"
+        }
+        self.present(textAlertController(context: self.context, title: nil, text: text, actions: [
+            TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+            TextAlertAction(type: .defaultAction, title: isRussian ? "Отправить" : "Send", action: { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.holyGramSkipSendConfirmation = true
+                send()
+                self.holyGramSkipSendConfirmation = false
+            })
+        ]), in: .window(.root))
+    }
+    //
     var validLayout: ContainerViewLayout?
     
     public weak var parentController: ViewController?
@@ -2424,6 +2452,15 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
                 return false
             }
             
+            // MARK: HolyGram
+            if SGSimpleSettings.shared.confirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
+                strongSelf.holyGramConfirmSend(kind: "sticker", send: { [weak strongSelf] in
+                    let _ = strongSelf?.controllerInteraction?.sendSticker(fileReference, silentPosting, schedule, query, clearInput, nil, nil, nil, bubbleUpEmojiOrStickersets)
+                })
+                return false
+            }
+            //
+            
             if let _ = strongSelf.presentationInterfaceState.slowmodeState, strongSelf.presentationInterfaceState.subject != .scheduledMessages {
                 if let sourceView, let sourceRect {
                     strongSelf.interfaceInteraction?.displaySlowmodeTooltip(sourceView, sourceRect)
@@ -2699,6 +2736,14 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             }
         }, sendGif: { [weak self] fileReference, sourceView, sourceRect, silentPosting, schedule in
             if let strongSelf = self {
+                // MARK: HolyGram
+                if SGSimpleSettings.shared.confirmStickerSend && !strongSelf.holyGramSkipSendConfirmation {
+                    strongSelf.holyGramConfirmSend(kind: "gif", send: { [weak strongSelf] in
+                        let _ = strongSelf?.controllerInteraction?.sendGif(fileReference, sourceView, sourceRect, silentPosting, schedule)
+                    })
+                    return false
+                }
+                //
                 if let _ = strongSelf.presentationInterfaceState.slowmodeState, strongSelf.presentationInterfaceState.subject != .scheduledMessages {
                     strongSelf.interfaceInteraction?.displaySlowmodeTooltip(sourceView, sourceRect)
                     return false

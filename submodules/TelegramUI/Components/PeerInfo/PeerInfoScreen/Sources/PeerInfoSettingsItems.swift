@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import UIKit
 import Display
 import AccountContext
@@ -343,6 +344,11 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
                 interaction.openSettings(.premiumGift)
             }))
         }
+    }
+    
+    // MARK: HolyGram: hide Premium, Stars, TON, Business and Gifts rows
+    if SGSimpleSettings.shared.hidePaidFeatureRows {
+        items[.payment] = []
     }
     
     if let settings = data.globalSettings {

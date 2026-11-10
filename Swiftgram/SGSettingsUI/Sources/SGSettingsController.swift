@@ -60,6 +60,10 @@ private enum SGBoolSetting: String {
     case keepSelfDestructingMedia
     case hideInAppSwitcher
     case hideSponsoredMessages
+    case streamerMode
+    case hidePaidFeatureRows
+    case confirmStickerSend
+    case confirmVoiceSend
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -204,7 +208,10 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages, text: i18n("Settings.HGPrivacy.HideSponsored", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode, text: i18n("Settings.HGPrivacy.StreamerMode", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang), enabled: true))
+    entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .tabs, settingName: .hideTabBar, value: SGSimpleSettings.shared.hideTabBar, text: i18n("Settings.Tabs.HideTabBar", lang), enabled: true))
@@ -239,6 +246,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowRegDate.Notice", lang)))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .showCreationDate, value: SGSimpleSettings.shared.showCreationDate, text: i18n("Settings.ShowCreationDate", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.ShowCreationDate.Notice", lang)))
+    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmStickerSend, value: SGSimpleSettings.shared.confirmStickerSend, text: i18n("Settings.HG.ConfirmSticker", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmVoiceSend, value: SGSimpleSettings.shared.confirmVoiceSend, text: i18n("Settings.HG.ConfirmVoice", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .profiles, settingName: .confirmCalls, value: SGSimpleSettings.shared.confirmCalls, text: i18n("Settings.CallConfirmation", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .profiles, text: i18n("Settings.CallConfirmation.Notice", lang)))
     
@@ -466,6 +475,15 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.hideInAppSwitcher = value
         case .hideSponsoredMessages:
             SGSimpleSettings.shared.hideSponsoredMessages = value
+        case .streamerMode:
+            SGSimpleSettings.shared.streamerMode = value
+            askForRestart?()
+        case .hidePaidFeatureRows:
+            SGSimpleSettings.shared.hidePaidFeatureRows = value
+        case .confirmStickerSend:
+            SGSimpleSettings.shared.confirmStickerSend = value
+        case .confirmVoiceSend:
+            SGSimpleSettings.shared.confirmVoiceSend = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

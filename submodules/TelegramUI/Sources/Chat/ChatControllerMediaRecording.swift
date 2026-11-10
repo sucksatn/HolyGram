@@ -688,6 +688,14 @@ extension ChatControllerImpl {
         messageEffect: ChatSendMessageEffect? = nil,
         postpone: Bool = false
     ) {
+        // MARK: HolyGram
+        if SGSimpleSettings.shared.confirmVoiceSend && !self.holyGramSkipSendConfirmation && !postpone {
+            self.holyGramConfirmSend(kind: "voice", send: { [weak self] in
+                self?.sendMediaRecording(silentPosting: silentPosting, scheduleTime: scheduleTime, repeatPeriod: repeatPeriod, viewOnce: viewOnce, messageEffect: messageEffect, postpone: postpone)
+            })
+            return
+        }
+        //
         self.chatDisplayNode.updateRecordedMediaDeleted(false)
         
         guard let recordedMediaPreview = self.presentationInterfaceState.interfaceState.mediaDraftState else {

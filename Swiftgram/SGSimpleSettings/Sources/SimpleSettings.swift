@@ -125,6 +125,10 @@ public class SGSimpleSettings {
         case hideInAppSwitcher
         case hideSponsoredMessages
         case keepSelfDestructingMedia
+        case streamerMode
+        case hidePaidFeatureRows
+        case confirmStickerSend
+        case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -299,6 +303,10 @@ public class SGSimpleSettings {
         Keys.hideInAppSwitcher.rawValue: false,
         Keys.hideSponsoredMessages.rawValue: true,
         Keys.keepSelfDestructingMedia.rawValue: false,
+        Keys.streamerMode.rawValue: false,
+        Keys.hidePaidFeatureRows.rawValue: false,
+        Keys.confirmStickerSend.rawValue: false,
+        Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -463,6 +471,21 @@ public class SGSimpleSettings {
     /// Self-destructing photos and videos in cloud chats stay viewable after their timer.
     @UserDefault(key: Keys.keepSelfDestructingMedia.rawValue)
     public var keepSelfDestructingMedia: Bool
+
+    /// Hide the app from screenshots, screen recordings and screen sharing.
+    @UserDefault(key: Keys.streamerMode.rawValue)
+    public var streamerMode: Bool
+
+    /// Hide the Premium, Stars, TON, Business and Gifts rows in Settings.
+    @UserDefault(key: Keys.hidePaidFeatureRows.rawValue)
+    public var hidePaidFeatureRows: Bool
+
+    // MARK: HolyGram: ask before sending
+    @UserDefault(key: Keys.confirmStickerSend.rawValue)
+    public var confirmStickerSend: Bool
+
+    @UserDefault(key: Keys.confirmVoiceSend.rawValue)
+    public var confirmVoiceSend: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

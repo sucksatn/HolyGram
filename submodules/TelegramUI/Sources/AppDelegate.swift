@@ -2142,6 +2142,20 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.holyGramPrivacyBlurView = blurView
     }
     
+    // MARK: HolyGram: streamer mode hides the whole app from screenshots and screen recordings
+    private var holyGramStreamerModeApplied: Bool?
+    
+    func holyGramApplyStreamerMode() {
+        guard let layer = self.mainWindow?.hostView.containerView.layer else {
+            return
+        }
+        let enabled = SGSimpleSettings.shared.streamerMode
+        if self.holyGramStreamerModeApplied != enabled {
+            self.holyGramStreamerModeApplied = enabled
+            setLayerDisableScreenshots(layer, enabled)
+        }
+    }
+    
     private func holyGramHidePrivacyBlur() {
         guard let blurView = self.holyGramPrivacyBlurView else {
             return
@@ -2274,6 +2288,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
     func handleDidBecomeActive() {
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
+        self.holyGramApplyStreamerMode() // MARK: HolyGram
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true
