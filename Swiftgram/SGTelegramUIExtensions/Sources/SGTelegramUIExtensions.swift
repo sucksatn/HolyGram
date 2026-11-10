@@ -122,6 +122,9 @@ enum SGContextMenuActionFactory {
     case chatStats(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case saveAllMedia(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case remind(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case templates(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case exportChat(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case firstMessage(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
 }
 
 func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) -> ContextMenuItem {
@@ -194,6 +197,34 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
                 hgPresentReminderOptions(controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
             }
         }))
+    case let .templates(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Шаблоны" : "Templates", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "text.badge.plus"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgPresentTemplates(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
+            }
+        }))
+    case let .exportChat(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Экспорт чата в текст" : "Export Chat as Text", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "doc.text"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgExportChatText(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, peerId: message.id.peerId, ru: ru)
+            }
+        }))
+    case let .firstMessage(controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "К началу чата" : "Go to First Message", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "arrow.up.to.line"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            controllerInteraction.navigateToFirstDateMessage(1, false)
+        }))
     case let .editHistory(controllerInteraction):
         return .action(ContextMenuActionItem(text: i18n("Message.HolyGram.EditHistory", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)
@@ -204,6 +235,117 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
         }))
     }
+}
+
+// MARK: HolyGram: the topmost view controller of the chat's window
+private func hgPresenter(_ controllerInteraction: ChatControllerInteraction) -> UIViewController? {
+    guard let navigationController = controllerInteraction.navigationController(), var presenter = navigationController.view.window?.rootViewController else {
+        return nil
+    }
+    while let presented = presenter.presentedViewController {
+        presenter = presented
+    }
+    return presenter
+}
+
+// MARK: HolyGram: send a saved template to this chat, or save this message as one
+private func hgPresentTemplates(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage, ru: Bool) {
+    guard let presenter = hgPresenter(controllerInteraction), let sourceView = controllerInteraction.navigationController()?.view else {
+        return
+    }
+    let strings = chatPresentationInterfaceState.strings
+    let sheet = UIAlertController(title: ru ? "Шаблоны" : "Templates", message: nil, preferredStyle: .actionSheet)
+    let templates = HolyGramTemplates.all()
+    if templates.isEmpty {
+        sheet.message = ru ? "Шаблонов пока нет." : "No templates yet."
+    }
+    for template in templates.reversed().prefix(15) {
+        let title = String(template.replacingOccurrences(of: "\n", with: " ").prefix(60))
+        sheet.addAction(UIAlertAction(title: "↗︎ " + title, style: .default, handler: { _ in
+            let _ = enqueueMessages(account: context.account, peerId: message.id.peerId, messages: [
+                .message(text: template, attributes: [], inlineStickers: [:], mediaReference: nil, threadId: chatPresentationInterfaceState.chatLocation.threadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+            ]).startStandalone()
+        }))
+    }
+    if !message.text.isEmpty {
+        sheet.addAction(UIAlertAction(title: ru ? "Сохранить это сообщение как шаблон" : "Save This Message as Template", style: .default, handler: { _ in
+            HolyGramTemplates.add(message.text)
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Шаблон сохранён." : "Template saved.", timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+        }))
+    }
+    sheet.addAction(UIAlertAction(title: strings.Common_Cancel, style: .cancel))
+    if let popover = sheet.popoverPresentationController {
+        popover.sourceView = sourceView
+        popover.sourceRect = CGRect(x: sourceView.bounds.midX, y: sourceView.bounds.midY, width: 1.0, height: 1.0)
+        popover.permittedArrowDirections = []
+    }
+    presenter.present(sheet, animated: true)
+}
+
+// MARK: HolyGram: the chat's stored messages as a plain text file
+private func hgExportChatText(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, peerId: PeerId, ru: Bool) {
+    let strings = chatPresentationInterfaceState.strings
+    let nameOrder = chatPresentationInterfaceState.nameDisplayOrder
+    let maxMessages = 100000
+    let _ = (context.account.postbox.transaction { transaction -> (String, String, Int) in
+        var lines: [(Int32, Int32, String)] = []
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy HH:mm"
+        var names: [PeerId: String] = [:]
+        transaction.withAllMessages(peerId: peerId, reversed: true, { message in
+            var text = message.text
+            if text.isEmpty {
+                if message.media.contains(where: { $0 is TelegramMediaAction }) {
+                    return true
+                }
+                text = message.media.isEmpty ? "" : (ru ? "[медиа]" : "[media]")
+            } else if !message.media.isEmpty {
+                text = (ru ? "[медиа] " : "[media] ") + text
+            }
+            var author = ""
+            if let authorPeer = message.author {
+                if let name = names[authorPeer.id] {
+                    author = name
+                } else {
+                    author = EnginePeer(authorPeer).displayTitle(strings: strings, displayOrder: nameOrder)
+                    names[authorPeer.id] = author
+                }
+            }
+            let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))
+            lines.append((message.timestamp, message.id.id, "[\(date)] \(author): \(text)"))
+            return lines.count < maxMessages
+        })
+        lines.sort { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1 < $1.1 }
+        let title = transaction.getPeer(peerId).flatMap { EnginePeer($0).displayTitle(strings: strings, displayOrder: nameOrder) } ?? "Chat"
+        return (title, lines.map { $0.2 }.joined(separator: "\n"), lines.count)
+    }
+    |> deliverOnMainQueue).start(next: { title, text, count in
+        guard let presenter = hgPresenter(controllerInteraction) else {
+            return
+        }
+        if count == 0 {
+            let alert = UIAlertController(title: nil, message: ru ? "На устройстве нет сообщений этого чата. Пролистайте историю, чтобы она загрузилась." : "No messages of this chat are stored on this device. Scroll back through the history to load it.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: strings.Common_OK, style: .default))
+            presenter.present(alert, animated: true)
+            return
+        }
+        let safeTitle = String(title.map { "/\\:?*\"<>|".contains($0) ? "_" : $0 }).prefix(60)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(safeTitle).txt")
+        let header = "\(title)\n" + (ru ? "Сообщений: \(count). Экспорт HolyGram, только загруженные на устройство сообщения." : "Messages: \(count). Exported by HolyGram, messages stored on this device only.") + "\n\n"
+        do {
+            try (header + text).write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            return
+        }
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let popover = activity.popoverPresentationController {
+            popover.sourceView = presenter.view
+            popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+            popover.permittedArrowDirections = []
+        }
+        presenter.present(activity, animated: true)
+    })
 }
 
 // MARK: HolyGram: every photo and video of a chat into the Photos library

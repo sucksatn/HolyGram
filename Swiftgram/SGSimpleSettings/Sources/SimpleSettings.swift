@@ -148,6 +148,10 @@ public class SGSimpleSettings {
         case menuChatStats
         case menuSaveAllMedia
         case menuEditHistory
+        case menuExportChat
+        case menuFirstMessage
+        case menuTemplates
+        case menuChatNote
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -346,6 +350,10 @@ public class SGSimpleSettings {
         Keys.menuChatStats.rawValue: true,
         Keys.menuSaveAllMedia.rawValue: true,
         Keys.menuEditHistory.rawValue: true,
+        Keys.menuExportChat.rawValue: true,
+        Keys.menuFirstMessage.rawValue: true,
+        Keys.menuTemplates.rawValue: true,
+        Keys.menuChatNote.rawValue: true,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -604,6 +612,22 @@ public class SGSimpleSettings {
     /// Message menu: edit history.
     @UserDefault(key: Keys.menuEditHistory.rawValue)
     public var menuEditHistory: Bool
+
+    /// Message menu: export the chat to a text file.
+    @UserDefault(key: Keys.menuExportChat.rawValue)
+    public var menuExportChat: Bool
+
+    /// Message menu: jump to the first message.
+    @UserDefault(key: Keys.menuFirstMessage.rawValue)
+    public var menuFirstMessage: Bool
+
+    /// Message menu: message templates.
+    @UserDefault(key: Keys.menuTemplates.rawValue)
+    public var menuTemplates: Bool
+
+    /// Chat menu: a private note about the chat.
+    @UserDefault(key: Keys.menuChatNote.rawValue)
+    public var menuChatNote: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
