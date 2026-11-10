@@ -268,7 +268,7 @@ private enum DebugLogAction {
         case .sendOneLog, .sgSendLogs:
             let logCollectionSignal = self == .sgSendLogs ? SGLogger.shared.collectLogs() : Logger.shared.collectLogs()
             let fileName = self == .sgSendLogs ? "Log-iOS-Swiftgram.txt" : "Log-iOS-Short.txt"
-            let appName = self == .sgSendLogs ? "Swiftgram" : "Telegram"
+            let appName = self == .sgSendLogs ? "HolyGram" : "Telegram"
             //
             let _ = (logCollectionSignal // MARK: Swiftgram
                 |> deliverOnMainQueue).start(next: { logs in
@@ -1028,14 +1028,14 @@ private enum DebugControllerEntry: ItemListNodeEntry {
         switch self {
         // MARK: Swiftgram
         case .SGDebug:
-            return ItemListDisclosureItem(presentationData: presentationData, title: "Swiftgram Debug", label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, title: "HolyGram Debug", label: "", sectionId: self.section, style: .blocks, action: {
                 guard let context = arguments.context else {
                     return
                 }
                 arguments.pushController(sgDebugController(context: context))
             })
         case .sendSGLogs:
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Send Swiftgram Logs", label: "", sectionId: self.section, style: .blocks, action: {
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: "Send HolyGram Logs", label: "", sectionId: self.section, style: .blocks, action: {
                 let presentationData = arguments.sharedContext.currentPresentationData.with { $0 }
                 let actionSheet = ActionSheetController(presentationData: presentationData)
                 var items: [ActionSheetButtonItem] = []
