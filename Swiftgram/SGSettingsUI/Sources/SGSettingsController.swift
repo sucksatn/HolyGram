@@ -155,6 +155,7 @@ private enum SGDisclosureLink: String {
     case holyGramDeletedMessages // MARK: HolyGram
     case holyGramBookmarks // MARK: HolyGram
     case holyGramDrafts // MARK: HolyGram
+    case holyGramMentions // MARK: HolyGram
     case contentSettings
     case languageSettings
 }
@@ -169,6 +170,15 @@ private struct SGSettingsControllerState: Equatable {
 }
 
 private typealias SGControllerEntry = SGItemListUIEntry<SGControllerSection, SGBoolSetting, SGSliderSetting, SGOneFromManySetting, SGDisclosureLink, AnyHashable>
+
+// MARK: HolyGram: the view controller to present plain UIKit alerts from
+private func hgTopViewController() -> UIViewController? {
+    var presenter = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.windows.first(where: \.isKeyWindow) }.first?.rootViewController
+    while let presented = presenter?.presentedViewController {
+        presenter = presented
+    }
+    return presenter
+}
 
 // MARK: HolyGram Pro status line for the settings screen
 private func holyGramProStatusText(lang: String) -> String {
@@ -265,6 +275,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     }
     let highlight = SGSimpleSettings.shared.highlightKeywords.joined(separator: ", ")
     entries.append(.action(id: id.count, section: .messageHistory, actionType: AnyHashable("hgEditHighlight"), text: i18n("Settings.MessageHistory.Highlight", lang) + lock + (highlight.isEmpty ? "" : ": " + highlight), kind: .generic))
+    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramMentions, text: i18n("Settings.MessageHistory.Mentions", lang)))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDrafts, text: i18n("Settings.MessageHistory.Drafts", lang)))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramBookmarks, text: i18n("Settings.MessageHistory.Bookmarks", lang) + lock))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDeletedMessages, text: i18n("Settings.MessageHistory.Browse", lang) + lock))
@@ -274,6 +285,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
     entries.append(.disclosure(id: id.count, section: .holyGramPrivacy, link: .holyGramHiddenChats, text: i18n("Settings.HGPrivacy.HiddenChats", lang) + (hasPro ? (SGSimpleSettings.shared.hiddenChats.isEmpty ? "" : " (\(SGSimpleSettings.shared.hiddenChats.count))") : lock)))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
+    entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgArchiveInactive"), text: i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: SGSimpleSettings.shared.hideSimilarChannels, text: i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
@@ -851,6 +863,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .holyGramMentions:
+                pushControllerImpl?(holyGramMentionsController(context: context))
             case .holyGramDrafts:
                 pushControllerImpl?(holyGramDraftsController(context: context))
             case .holyGramBookmarks:
@@ -909,11 +923,39 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
                 SGSimpleSettings.shared.highlightKeywords = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
                 simplePromise.set(true)
             }))
-            var presenter = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.windows.first(where: \.isKeyWindow) }.first?.rootViewController
-            while let presented = presenter?.presentedViewController {
-                presenter = presented
+            hgTopViewController()?.present(alert, animated: true)
+            return
+        }
+        // MARK: HolyGram: archive channels without posts for 30 days
+        if actionType == AnyHashable("hgArchiveInactive") {
+            guard SGSimpleSettings.shared.hgPro else {
+                return
             }
-            presenter?.present(alert, animated: true)
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            let _ = (context.engine.messages.chatList(group: .root, count: 3000)
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { list in
+                let cutoff = Int32(Date().timeIntervalSince1970) - 30 * 86400
+                let peerIds = list.items.compactMap { item -> EnginePeer.Id? in
+                    guard case let .chatList(index) = item.index, index.pinningIndex == nil, case let .channel(channel)? = item.renderedPeer.peer, case .broadcast = channel.info, index.messageIndex.timestamp < cutoff else {
+                        return nil
+                    }
+                    return channel.id
+                }
+                let alert: UIAlertController
+                if peerIds.isEmpty {
+                    alert = UIAlertController(title: nil, message: ru ? "Нет каналов без новых постов за 30 дней." : "No channels without posts in the last 30 days.", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                } else {
+                    alert = UIAlertController(title: ru ? "Архивировать каналы?" : "Archive channels?", message: ru ? "Каналов без новых постов за 30 дней: \(peerIds.count). Они переедут в архив (закреплённые не трогаются)." : "\(peerIds.count) channels have had no posts for 30 days. They'll move to the archive (pinned ones stay).", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+                    alert.addAction(UIAlertAction(title: ru ? "Архивировать" : "Archive", style: .default, handler: { _ in
+                        let _ = context.engine.peers.updatePeersGroupIdInteractively(peerIds: peerIds, groupId: .archive).start()
+                    }))
+                }
+                hgTopViewController()?.present(alert, animated: true)
+            })
             return
         }
         // MARK: HolyGram: tap on the device code copies it

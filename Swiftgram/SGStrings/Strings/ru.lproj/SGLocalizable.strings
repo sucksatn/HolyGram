@@ -327,3 +327,5 @@
 "Settings.MessageHistory.Bookmarks" = "Закладки";
 "Settings.MessageHistory.Drafts" = "Черновики";
 "Settings.MessageHistory.Highlight" = "Подсветка слов";
+"Settings.HGPrivacy.ArchiveInactive" = "Архивировать неактивные каналы";
+"Settings.MessageHistory.Mentions" = "Упоминания и реакции";

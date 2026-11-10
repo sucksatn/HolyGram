@@ -332,3 +332,5 @@
 "Settings.MessageHistory.Bookmarks" = "Bookmarks";
 "Settings.MessageHistory.Drafts" = "Drafts";
 "Settings.MessageHistory.Highlight" = "Highlighted Words";
+"Settings.HGPrivacy.ArchiveInactive" = "Archive Inactive Channels";
+"Settings.MessageHistory.Mentions" = "Mentions & Reactions";
