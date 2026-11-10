@@ -326,3 +326,4 @@
 "Settings.MessageHistory.Browse" = "Удалённые сообщения";
 "Settings.MessageHistory.Bookmarks" = "Закладки";
 "Settings.MessageHistory.Drafts" = "Черновики";
+"Settings.MessageHistory.Highlight" = "Подсветка слов";

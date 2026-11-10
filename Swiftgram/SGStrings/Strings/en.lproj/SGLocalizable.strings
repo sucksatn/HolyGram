@@ -331,3 +331,4 @@
 "Settings.MessageHistory.Browse" = "Deleted Messages";
 "Settings.MessageHistory.Bookmarks" = "Bookmarks";
 "Settings.MessageHistory.Drafts" = "Drafts";
+"Settings.MessageHistory.Highlight" = "Highlighted Words";

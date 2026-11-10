@@ -263,6 +263,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     } else {
         id.increment(1)
     }
+    let highlight = SGSimpleSettings.shared.highlightKeywords.joined(separator: ", ")
+    entries.append(.action(id: id.count, section: .messageHistory, actionType: AnyHashable("hgEditHighlight"), text: i18n("Settings.MessageHistory.Highlight", lang) + lock + (highlight.isEmpty ? "" : ": " + highlight), kind: .generic))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDrafts, text: i18n("Settings.MessageHistory.Drafts", lang)))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramBookmarks, text: i18n("Settings.MessageHistory.Bookmarks", lang) + lock))
     entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDeletedMessages, text: i18n("Settings.MessageHistory.Browse", lang) + lock))
@@ -885,8 +887,37 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
                 })
         }
     }, action: { [weak context] actionType in
+        guard let context else {
+            return
+        }
+        // MARK: HolyGram: words highlighted in messages, edited as a comma-separated list
+        if actionType == AnyHashable("hgEditHighlight") {
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            let alert = UIAlertController(title: ru ? "Подсветка слов" : "Highlighted Words", message: ru ? "Слова через запятую, например ваше имя. Они выделятся в сообщениях во всех чатах." : "Comma-separated words, e.g. your name. They're highlighted in messages in every chat.", preferredStyle: .alert)
+            alert.addTextField { field in
+                field.text = SGSimpleSettings.shared.highlightKeywords.joined(separator: ", ")
+                field.placeholder = ru ? "Имя, ник, слово" : "Name, nickname, word"
+                field.autocapitalizationType = .none
+            }
+            alert.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: ru ? "Сохранить" : "Save", style: .default, handler: { [weak alert] _ in
+                let text = alert?.textFields?.first?.text ?? ""
+                SGSimpleSettings.shared.highlightKeywords = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                simplePromise.set(true)
+            }))
+            var presenter = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.windows.first(where: \.isKeyWindow) }.first?.rootViewController
+            while let presented = presenter?.presentedViewController {
+                presenter = presented
+            }
+            presenter?.present(alert, animated: true)
+            return
+        }
         // MARK: HolyGram: tap on the device code copies it
-        guard let context, actionType == AnyHashable("hgCopyDeviceCode") else {
+        guard actionType == AnyHashable("hgCopyDeviceCode") else {
             return
         }
         UIPasteboard.general.string = HolyGramPro.shared.displayDeviceCode

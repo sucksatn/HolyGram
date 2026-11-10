@@ -134,6 +134,7 @@ public class SGSimpleSettings {
         case hideSimilarChannels
         case hiddenChats
         case lockedChats
+        case highlightKeywords
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -318,6 +319,7 @@ public class SGSimpleSettings {
         Keys.hideSimilarChannels.rawValue: false,
         Keys.hiddenChats.rawValue: [String](),
         Keys.lockedChats.rawValue: [String](),
+        Keys.highlightKeywords.rawValue: [String](),
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -519,6 +521,10 @@ public class SGSimpleSettings {
     /// Chats (peer ids) that need Face ID to open.
     @UserDefault(key: Keys.lockedChats.rawValue)
     public var lockedChats: [String]
+
+    /// Words highlighted in message text, case-insensitive.
+    @UserDefault(key: Keys.highlightKeywords.rawValue)
+    public var highlightKeywords: [String]
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
