@@ -64,13 +64,13 @@ jobs:
         run: |
           cd /Users/Shared/telegram-ios
           # bundle_id and team_id must match the fake signing profiles in
-          # build-system/fake-codesigning (re-signed for HolyGram, valid until
+          # build-system/fake-codesigning (issued for app.holygram.ios, valid until
           # 2030-10-01). The IPA is re-signed with your own Apple ID when you
           # sideload it.
           python3 - <<'PY'
           import json, os
           json.dump({
-              "bundle_id": "ph.telegra.Telegraph",
+              "bundle_id": "app.holygram.ios",
               "api_id": os.environ["API_ID"],
               "api_hash": os.environ["API_HASH"],
               "team_id": "C67CF9S4VU",
