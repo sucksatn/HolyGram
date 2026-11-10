@@ -104,6 +104,7 @@ enum SGContextMenuActionFactory {
     case editHistory(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case repeatMessage(context: AccountContext) // MARK: HolyGram
     case bookmark(context: AccountContext) // MARK: HolyGram
+    case chatStats(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case remind(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
 }
 
@@ -140,6 +141,14 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
                 .forward(source: message.id, threadId: message.threadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: true, hideCaptions: false)], correlationId: nil)
             ]).startStandalone()
         }))
+    case let .chatStats(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Статистика чата" : "Chat Statistics", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "chart.bar"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            hgShowChatStatistics(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, peerId: message.id.peerId, ru: ru)
+        }))
     case .bookmark:
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
         let isBookmarked = HolyGramBookmarks.contains(peerId: message.id.peerId.toInt64(), namespace: message.id.namespace, id: message.id.id)
@@ -169,6 +178,67 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
         }))
     }
+}
+
+// MARK: HolyGram: who writes how much and when, over the messages stored on this device
+private func hgShowChatStatistics(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, peerId: PeerId, ru: Bool) {
+    let strings = chatPresentationInterfaceState.strings
+    let nameOrder = chatPresentationInterfaceState.nameDisplayOrder
+    let _ = (context.account.postbox.transaction { transaction -> String in
+        var total = 0
+        var byAuthor: [PeerId: Int] = [:]
+        var byHour = [Int](repeating: 0, count: 24)
+        var firstTimestamp: Int32 = Int32.max
+        let calendar = Calendar.current
+        transaction.withAllMessages(peerId: peerId, reversed: true, { message in
+            if message.media.contains(where: { $0 is TelegramMediaAction }) {
+                return true
+            }
+            total += 1
+            if let authorId = message.author?.id {
+                byAuthor[authorId, default: 0] += 1
+            }
+            byHour[calendar.component(.hour, from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))] += 1
+            firstTimestamp = min(firstTimestamp, message.timestamp)
+            return total < 200000
+        })
+        if total == 0 {
+            return ru ? "На устройстве нет сообщений этого чата. Пролистайте историю, чтобы она загрузилась." : "No messages of this chat are stored on this device. Scroll back through the history to load it."
+        }
+        var lines: [String] = []
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        lines.append(ru ? "Сообщений: \(total)" : "Messages: \(total)")
+        if firstTimestamp != Int32.max {
+            lines.append((ru ? "С " : "Since ") + formatter.string(from: Date(timeIntervalSince1970: TimeInterval(firstTimestamp))))
+        }
+        lines.append("")
+        lines.append(ru ? "Кто пишет больше:" : "Top writers:")
+        for (authorId, count) in byAuthor.sorted(by: { $0.value > $1.value }).prefix(10) {
+            let name = transaction.getPeer(authorId).flatMap { EnginePeer($0).displayTitle(strings: strings, displayOrder: nameOrder) } ?? "?"
+            let percent = Int((Double(count) / Double(total) * 100.0).rounded())
+            lines.append("\(name) — \(count) (\(percent)%)")
+        }
+        let busiest = byHour.enumerated().sorted(by: { $0.element > $1.element }).prefix(3).filter { $0.element > 0 }.map { String(format: "%02d:00", $0.offset) }
+        if !busiest.isEmpty {
+            lines.append("")
+            lines.append((ru ? "Самые активные часы: " : "Busiest hours: ") + busiest.joined(separator: ", "))
+        }
+        lines.append("")
+        lines.append(ru ? "По сообщениям, загруженным на это устройство." : "Based on the messages stored on this device.")
+        return lines.joined(separator: "\n")
+    }
+    |> deliverOnMainQueue).start(next: { text in
+        guard let navigationController = controllerInteraction.navigationController(), var presenter = navigationController.view.window?.rootViewController else {
+            return
+        }
+        while let presented = presenter.presentedViewController {
+            presenter = presented
+        }
+        let alert = UIAlertController(title: ru ? "Статистика чата" : "Chat Statistics", message: text, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: strings.Common_OK, style: .default))
+        presenter.present(alert, animated: true)
+    })
 }
 
 // MARK: HolyGram: local reminder about a message

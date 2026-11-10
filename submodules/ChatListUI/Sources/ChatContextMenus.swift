@@ -395,6 +395,11 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                     chatListController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Чат скрыт. Он в Настройки → HolyGram → Скрытые чаты." : "Chat hidden. Find it in Settings → HolyGram → Hidden Chats.", timeout: 4.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
                                 }
                             })))
+                            let isSilent = SGSimpleSettings.shared.isSilentChat(peerId.toInt64())
+                            items.append(.action(ContextMenuActionItem(text: isSilent ? (ru ? "Отправлять со звуком" : "Send With Sound") : (ru ? "Отправлять без звука" : "Always Send Silently"), icon: { theme in generateTintedImage(image: UIImage(systemName: isSilent ? "bell" : "bell.slash"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                SGSimpleSettings.shared.setSilentChat(peerId.toInt64(), !isSilent)
+                                f(.default)
+                            })))
                             let isLocked = SGSimpleSettings.shared.isLockedChat(peerId.toInt64())
                             items.append(.action(ContextMenuActionItem(text: isLocked ? (ru ? "Снять Face ID" : "Remove Face ID Lock") : (ru ? "Закрыть Face ID" : "Lock with Face ID"), icon: { theme in generateTintedImage(image: UIImage(systemName: isLocked ? "lock.open" : "lock"), color: theme.contextMenu.primaryColor) }, action: { _, f in
                                 f(.default)

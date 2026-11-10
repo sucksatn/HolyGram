@@ -135,6 +135,7 @@ public class SGSimpleSettings {
         case hiddenChats
         case lockedChats
         case highlightKeywords
+        case silentChats
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -320,6 +321,7 @@ public class SGSimpleSettings {
         Keys.hiddenChats.rawValue: [String](),
         Keys.lockedChats.rawValue: [String](),
         Keys.highlightKeywords.rawValue: [String](),
+        Keys.silentChats.rawValue: [String](),
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -525,6 +527,10 @@ public class SGSimpleSettings {
     /// Words highlighted in message text, case-insensitive.
     @UserDefault(key: Keys.highlightKeywords.rawValue)
     public var highlightKeywords: [String]
+
+    /// Chats (peer ids) where messages are always sent without sound.
+    @UserDefault(key: Keys.silentChats.rawValue)
+    public var silentChats: [String]
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool

@@ -15,6 +15,18 @@ public extension SGSimpleSettings {
         self.hiddenChats = list
     }
 
+    func isSilentChat(_ peerIdValue: Int64) -> Bool {
+        return self.hgPro && self.silentChats.contains(String(peerIdValue))
+    }
+
+    func setSilentChat(_ peerIdValue: Int64, _ silent: Bool) {
+        var list = self.silentChats.filter { $0 != String(peerIdValue) }
+        if silent {
+            list.append(String(peerIdValue))
+        }
+        self.silentChats = list
+    }
+
     func isLockedChat(_ peerIdValue: Int64) -> Bool {
         return self.hgPro && self.lockedChats.contains(String(peerIdValue))
     }

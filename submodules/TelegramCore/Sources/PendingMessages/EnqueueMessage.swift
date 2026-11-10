@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import Postbox
 internal import TelegramApi
 import SwiftSignalKit
@@ -863,6 +864,15 @@ public func resendMessages(account: Account, messageIds: [MessageId]) -> Signal<
 }
 
 func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId, messages: [(Bool, EnqueueMessage)], disableAutoremove: Bool = false, transformGroupingKeysWithPeerId: Bool = false) -> [MessageId?] {
+    // MARK: HolyGram: chats where everything is sent without sound
+    let messages: [(Bool, EnqueueMessage)] = SGSimpleSettings.shared.isSilentChat(peerId.toInt64()) ? messages.map { transformed, message in
+        return (transformed, message.withUpdatedAttributes { attributes in
+            if attributes.contains(where: { $0 is NotificationInfoMessageAttribute }) {
+                return attributes
+            }
+            return attributes + [NotificationInfoMessageAttribute(flags: .muted)]
+        })
+    } : messages
     /**
      * If it is a support account, mark messages as read here as they are
      * not marked as read when chat is opened.
