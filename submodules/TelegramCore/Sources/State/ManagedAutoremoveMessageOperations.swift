@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 import MtProtoKit
 
@@ -91,7 +92,9 @@ func managedAutoremoveMessageOperations(network: Network, postbox: Postbox, isRe
                                     storeForwardInfo = StoreMessageForwardInfo(authorId: forwardInfo.author?.id, sourceId: forwardInfo.source?.id, sourceMessageId: forwardInfo.sourceMessageId, date: forwardInfo.date, authorSignature: forwardInfo.authorSignature, psaType: forwardInfo.psaType, flags: forwardInfo.flags)
                                 }
                                 var updatedMedia = currentMessage.media
-                                for i in 0 ..< updatedMedia.count {
+                                // MARK: HolyGram: keep viewed self-destructing media on this device
+                                let keepMedia = SGSimpleSettings.shared.keepSelfDestructingMedia
+                                for i in 0 ..< updatedMedia.count where !keepMedia {
                                     if let _ = updatedMedia[i] as? TelegramMediaImage {
                                         updatedMedia[i] = TelegramMediaExpiredContent(data: .image)
                                     } else if let file = updatedMedia[i] as? TelegramMediaFile {

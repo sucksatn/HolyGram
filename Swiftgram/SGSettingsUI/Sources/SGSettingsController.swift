@@ -57,6 +57,7 @@ private enum SGBoolSetting: String {
     case ghostReadOnReply
     case saveDeletedMessages
     case saveEditHistory
+    case keepSelfDestructingMedia
     case hideInAppSwitcher
     case hideSponsoredMessages
     case hidePhoneInSettings
@@ -198,6 +199,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.header(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveDeletedMessages, value: SGSimpleSettings.shared.saveDeletedMessages, text: i18n("Settings.MessageHistory.SaveDeleted", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .saveEditHistory, value: SGSimpleSettings.shared.saveEditHistory, text: i18n("Settings.MessageHistory.SaveEdits", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .messageHistory, settingName: .keepSelfDestructingMedia, value: SGSimpleSettings.shared.keepSelfDestructingMedia, text: i18n("Settings.MessageHistory.KeepSelfDestructing", lang), enabled: true))
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
@@ -458,6 +460,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.saveDeletedMessages = value
         case .saveEditHistory:
             SGSimpleSettings.shared.saveEditHistory = value
+        case .keepSelfDestructingMedia:
+            SGSimpleSettings.shared.keepSelfDestructingMedia = value
         case .hideInAppSwitcher:
             SGSimpleSettings.shared.hideInAppSwitcher = value
         case .hideSponsoredMessages:

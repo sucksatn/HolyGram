@@ -124,6 +124,7 @@ public class SGSimpleSettings {
         case ghostReadOnReply
         case hideInAppSwitcher
         case hideSponsoredMessages
+        case keepSelfDestructingMedia
         case saveDeletedMessages
         case saveEditHistory
         case disableSwipeToRecordStory
@@ -297,6 +298,7 @@ public class SGSimpleSettings {
         Keys.ghostReadOnReply.rawValue: true,
         Keys.hideInAppSwitcher.rawValue: false,
         Keys.hideSponsoredMessages.rawValue: true,
+        Keys.keepSelfDestructingMedia.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
         Keys.disableSwipeToRecordStory.rawValue: false,
@@ -457,6 +459,10 @@ public class SGSimpleSettings {
     /// Don't load sponsored messages in channels.
     @UserDefault(key: Keys.hideSponsoredMessages.rawValue)
     public var hideSponsoredMessages: Bool
+
+    /// Self-destructing photos and videos in cloud chats stay viewable after their timer.
+    @UserDefault(key: Keys.keepSelfDestructingMedia.rawValue)
+    public var keepSelfDestructingMedia: Bool
 
     // MARK: HolyGram message history
     @UserDefault(key: Keys.saveDeletedMessages.rawValue)

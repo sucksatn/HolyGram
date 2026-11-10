@@ -301,3 +301,4 @@
 "Settings.HGPrivacy.Header" = "КОНФИДЕНЦИАЛЬНОСТЬ";
 "Settings.HGPrivacy.HideInAppSwitcher" = "Размывать в списке приложений";
 "Settings.HGPrivacy.HideSponsored" = "Скрывать рекламу в каналах";
+"Settings.MessageHistory.KeepSelfDestructing" = "Сохранять исчезающие фото и видео";
