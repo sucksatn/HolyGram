@@ -100,15 +100,15 @@ jobs:
             --bazelUserRoot=/private/var/tmp/_bazel_holygram \
             --cacheDir="$HOME/telegram-bazel-cache" \
             build \
+            --continueOnError \
             --configurationPath=build-system/holygram-configuration.json \
             --codesigningInformationPath=build-system/fake-codesigning \
             --configuration=release_arm64 \
             --buildNumber="$BUILD_NUMBER"
 
           mkdir -p build/artifacts
-          for f in bazel-out/applebin_ios-ios_arm*-opt-ST-*/bin/Telegram/Telegram.ipa; do
-            cp "$f" "build/artifacts/HolyGram-$APP_VERSION-$BUILD_NUMBER.ipa"
-          done
+          # Swiftgram's app target is //Telegram:Swiftgram
+          cp bazel-bin/Telegram/Swiftgram.ipa "build/artifacts/HolyGram-$APP_VERSION-$BUILD_NUMBER.ipa"
           ls -la build/artifacts
 
       - name: Save Bazel cache
