@@ -1,15 +1,15 @@
 // Cloudflare Worker entry point: status API for the app and the admin bot webhook.
-import { handleCommand, importSigningKey, signedFlags, signedStatus } from "./core.js";
+import { handleCommand, importSigningKey, normalizeDeviceCode, signedFlags, signedStatus } from "./core.js";
 
-// Workers KV: "sub:<userId>" -> subscription record, "flags:disabled" -> comma list.
+// Workers KV: "dev:<device code>" -> subscription record, "flags:disabled" -> comma list.
 // Reads are cheap; writes happen only from admin bot commands.
 function kvStorage(kv) {
-  const subKey = (userId) => `sub:${userId}`;
+  const subKey = (device) => `dev:${device}`;
   async function allRecords() {
     const records = [];
     let cursor;
     do {
-      const page = await kv.list({ prefix: "sub:", cursor });
+      const page = await kv.list({ prefix: "dev:", cursor });
       for (const { name } of page.keys) {
         const record = await kv.get(name, "json");
         if (record) records.push(record);
@@ -20,14 +20,14 @@ function kvStorage(kv) {
   }
   const isActive = (r, now) => r.expiresAt === -1 || r.expiresAt > now;
   return {
-    async get(userId) {
-      return await kv.get(subKey(userId), "json");
+    async get(device) {
+      return await kv.get(subKey(device), "json");
     },
     async put(record) {
-      await kv.put(subKey(record.userId), JSON.stringify(record));
+      await kv.put(subKey(record.device), JSON.stringify(record));
     },
-    async remove(userId) {
-      await kv.delete(subKey(userId));
+    async remove(device) {
+      await kv.delete(subKey(device));
     },
     async listActive(now, limit) {
       return (await allRecords())
@@ -75,11 +75,11 @@ export default {
     const storage = kvStorage(env.SUBS);
 
     if (request.method === "GET" && url.pathname === "/v1/status") {
-      const userId = Number(url.searchParams.get("user_id"));
-      if (!Number.isSafeInteger(userId) || userId <= 0) return json({ error: "bad user_id" }, 400);
-      const record = await storage.get(userId);
+      const device = normalizeDeviceCode(url.searchParams.get("device"));
+      if (!device) return json({ error: "bad device" }, 400);
+      const record = await storage.get(device);
       const key = await importSigningKey(env.SIGNING_KEY);
-      return json(await signedStatus(key, { userId, expiresAt: record?.expiresAt ?? 0, now }));
+      return json(await signedStatus(key, { device, expiresAt: record?.expiresAt ?? 0, now }));
     }
 
     if (request.method === "GET" && url.pathname === "/v1/flags") {
@@ -96,8 +96,10 @@ export default {
       const message = update.message;
       if (message?.chat?.type === "private") {
         const adminIds = String(env.ADMIN_IDS || "").split(",").map((s) => Number(s.trim())).filter(Boolean);
-        const reply = await handleCommand(storage, { message, adminIds, now });
-        if (reply) await sendMessage(env.BOT_TOKEN, message.chat.id, reply);
+        const outgoing = await handleCommand(storage, { message, adminIds, now });
+        for (const { chatId, text } of outgoing) {
+          await sendMessage(env.BOT_TOKEN, chatId, text);
+        }
       }
       return new Response("ok");
     }

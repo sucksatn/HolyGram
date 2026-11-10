@@ -316,3 +316,6 @@
 "Settings.HGPro.Inactive" = "Режиму призрака, истории сообщений, скрытию рекламы и другим функциям с 🔒 нужен HolyGram Pro.";
 "Settings.HGPro.Get" = "Получить HolyGram Pro";
 "Settings.HGPro.Manage" = "Управление подпиской";
+"Settings.HGPro.Device" = "Устройство: %@";
+"Settings.HGPro.DeviceCopied" = "Код устройства скопирован";
+"Settings.HGPro.DeviceNotice" = "Pro привязан к этому iPhone и работает во всех аккаунтах на нём. Нажмите на код, чтобы скопировать.";

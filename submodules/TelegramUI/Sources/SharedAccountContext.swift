@@ -313,7 +313,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return self.immediateSGStatusValue.with { $0 }
     }
     private var sgStatusDisposable: Disposable?
-    private var holyGramProDisposable: Disposable? // MARK: HolyGram
     public var SGIAP: SGIAPManager?
     
     public var presentGlobalController: (ViewController, Any?) -> Void = { _, _ in }
@@ -574,15 +573,9 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             }
         })
         self.initSGIAP(isMainApp: applicationBindings.isMainApp)
-        // MARK: HolyGram Pro: check the subscription of every logged-in account
+        // MARK: HolyGram Pro: the subscription belongs to this iPhone, check it at launch
         if applicationBindings.isMainApp {
-            self.holyGramProDisposable = (self.activeAccountContexts
-            |> map { _, accounts, _ -> [Int64] in
-                return accounts.map { $0.1.account.peerId.id._internalGetInt64Value() }
-            }
-            |> distinctUntilChanged).start(next: { userIds in
-                HolyGramPro.shared.refresh(userIds: userIds)
-            })
+            HolyGramPro.shared.refresh()
         }
         //
         

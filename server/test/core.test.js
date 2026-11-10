@@ -1,26 +1,46 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { FOREVER, grant, revoke, handleCommand, parseDuration, signedStatus, signedFlags, importSigningKey } from "../src/core.js";
+import {
+  FOREVER, grant, revoke, handleCommand, parseDuration, signedStatus, signedFlags, importSigningKey,
+  normalizeDeviceCode, formatDeviceCode,
+} from "../src/core.js";
 
 function memoryStorage() {
   const map = new Map();
   let disabled = [];
+  const active = (r, now) => r.expiresAt === -1 || r.expiresAt > now;
   return {
     async getDisabledFeatures() { return disabled; },
     async setDisabledFeatures(list) { disabled = list; },
-    async get(id) { return map.get(id) ?? null; },
-    async put(r) { map.set(r.userId, { ...r }); },
-    async remove(id) { map.delete(id); },
-    async listActive(now, limit) { return [...map.values()].filter((r) => r.expiresAt === -1 || r.expiresAt > now).slice(0, limit); },
+    async get(device) { return map.get(device) ?? null; },
+    async put(r) { map.set(r.device, { ...r }); },
+    async remove(device) { map.delete(device); },
+    async listActive(now, limit) { return [...map.values()].filter((r) => active(r, now)).slice(0, limit); },
     async counts(now) {
       const all = [...map.values()];
-      return { total: all.length, active: all.filter((r) => r.expiresAt === -1 || r.expiresAt > now).length, forever: all.filter((r) => r.expiresAt === -1).length };
+      return { total: all.length, active: all.filter((r) => active(r, now)).length, forever: all.filter((r) => r.expiresAt === -1).length };
     },
   };
 }
 
 const NOW = 1_800_000_000;
 const ADMIN = 111;
+const USER = 999;
+const CODE = "HG7K2F9XQMP4TD";
+
+const msg = (text, from, extra = {}) => ({ text, from: { id: from, username: "someone", first_name: "Some" }, chat: { id: from }, ...extra });
+const texts = (out) => out.map((m) => m.text).join("\n---\n");
+
+test("device codes", () => {
+  assert.equal(normalizeDeviceCode("hg-7k2f-9xqm-p4td"), CODE);
+  assert.equal(normalizeDeviceCode("HG7K2F9XQMP4TD"), CODE);
+  assert.equal(normalizeDeviceCode("7K2F 9XQM P4TD"), CODE);
+  assert.equal(normalizeDeviceCode("HG-7K2F-9XQM-P4TO"), "HG7K2F9XQMP4T0", "O reads as 0");
+  assert.equal(normalizeDeviceCode("HG-7K2F-9XQM"), null);
+  assert.equal(normalizeDeviceCode("HG-7K2F-9XQM-P4T!"), null);
+  assert.equal(normalizeDeviceCode(undefined), null);
+  assert.equal(formatDeviceCode(CODE), "HG-7K2F-9XQM-P4TD");
+});
 
 test("durations", () => {
   assert.equal(parseDuration("30d"), 30 * 86400);
@@ -34,58 +54,72 @@ test("durations", () => {
 
 test("grant extends a running subscription and starts fresh after expiry", async () => {
   const s = memoryStorage();
-  let r = await grant(s, { userId: 5, seconds: 10 * 86400, grantedBy: ADMIN, now: NOW });
+  let r = await grant(s, { device: CODE, seconds: 10 * 86400, grantedBy: ADMIN, now: NOW });
   assert.equal(r.expiresAt, NOW + 10 * 86400);
-  r = await grant(s, { userId: 5, seconds: 5 * 86400, grantedBy: ADMIN, now: NOW + 86400 });
+  r = await grant(s, { device: CODE, seconds: 5 * 86400, grantedBy: ADMIN, now: NOW + 86400 });
   assert.equal(r.expiresAt, NOW + 15 * 86400);
-  r = await grant(s, { userId: 5, seconds: 86400, grantedBy: ADMIN, now: NOW + 100 * 86400 });
+  r = await grant(s, { device: CODE, seconds: 86400, grantedBy: ADMIN, now: NOW + 100 * 86400 });
   assert.equal(r.expiresAt, NOW + 101 * 86400);
-  r = await grant(s, { userId: 5, seconds: FOREVER, grantedBy: ADMIN, now: NOW });
+  r = await grant(s, { device: CODE, seconds: FOREVER, grantedBy: ADMIN, now: NOW });
   assert.equal(r.expiresAt, FOREVER);
-  r = await grant(s, { userId: 5, seconds: 86400, grantedBy: ADMIN, now: NOW });
+  r = await grant(s, { device: CODE, seconds: 86400, grantedBy: ADMIN, now: NOW });
   assert.equal(r.expiresAt, FOREVER, "a timed grant never shortens a forever subscription");
-  assert.equal(await revoke(s, { userId: 5 }), true);
-  assert.equal(await s.get(5), null);
+  assert.equal(await revoke(s, { device: CODE, now: NOW }), true);
+  assert.equal((await s.get(CODE)).expiresAt, 0);
+  assert.equal(await revoke(s, { device: CODE, now: NOW }), false);
 });
 
-test("only admins can manage subscriptions", async () => {
+test("a user's request from the app reaches the admin, and the grant reaches the user", async () => {
   const s = memoryStorage();
-  const reply = await handleCommand(s, { message: { text: "/grant 42 30d", from: { id: 999 } }, adminIds: [ADMIN], now: NOW });
-  assert.equal(reply, null);
-  assert.equal(await s.get(42), null);
-  const own = await handleCommand(s, { message: { text: "/start", from: { id: 999 } }, adminIds: [ADMIN], now: NOW });
-  assert.match(own, /Ваш ID: 999/);
+  const out = await handleCommand(s, { message: msg(`/start ${CODE}`, USER), adminIds: [ADMIN], now: NOW });
+  assert.equal(out.length, 2);
+  assert.equal(out[0].chatId, USER);
+  assert.match(out[0].text, /HG-7K2F-9XQM-P4TD/);
+  assert.equal(out[1].chatId, ADMIN);
+  assert.match(out[1].text, /Запрос HolyGram Pro[\s\S]*@someone[\s\S]*HG-7K2F-9XQM-P4TD/);
+
+  // The admin answers the notification with "/grant 30d"; the code comes from the replied message.
+  const granted = await handleCommand(s, { message: msg("/grant 30d", ADMIN, { reply_to_message: { text: out[1].text } }), adminIds: [ADMIN], now: NOW });
+  assert.match(texts(granted), /Pro для HG-7K2F-9XQM-P4TD: до/);
+  assert.equal(granted[1].chatId, USER, "the user hears about the activation");
+  assert.equal((await s.get(CODE)).expiresAt, NOW + 30 * 86400);
+});
+
+test("non-admins can't manage subscriptions", async () => {
+  const s = memoryStorage();
+  assert.deepEqual(await handleCommand(s, { message: msg(`/grant ${CODE} 30d`, USER), adminIds: [ADMIN], now: NOW }), []);
+  assert.deepEqual(await handleCommand(s, { message: msg("/disable ghost", USER), adminIds: [ADMIN], now: NOW }), []);
+  assert.equal(await s.get(CODE), null);
+  assert.match(texts(await handleCommand(s, { message: msg("/start", USER), adminIds: [ADMIN], now: NOW })), /привязывается к iPhone/);
 });
 
 test("admin commands", async () => {
   const s = memoryStorage();
-  const cmd = (text, extra = {}) => handleCommand(s, { message: { text, from: { id: ADMIN }, ...extra }, adminIds: [ADMIN], now: NOW });
-  assert.match(await cmd("/grant 42 30d friend"), /Pro для 42/);
-  assert.match(await cmd("/info 42"), /осталось 30 дн/);
-  assert.match(await cmd("/list"), /42 — до/);
+  const cmd = async (text) => texts(await handleCommand(s, { message: msg(text, ADMIN), adminIds: [ADMIN], now: NOW }));
+  assert.match(await cmd(`/grant ${CODE} 30d friend`), /Pro для HG-7K2F-9XQM-P4TD/);
+  assert.match(await cmd("/info hg-7k2f-9xqm-p4td"), /осталось 30 дн[\s\S]*friend/);
+  assert.match(await cmd("/list"), /HG-7K2F-9XQM-P4TD — до/);
   assert.match(await cmd("/stats"), /Активных: 1/);
-  assert.match(await cmd("/grant 43 forever", {}), /навсегда/);
-  assert.match(await cmd("/grant 30d", { reply_to_message: { forward_origin: { type: "user", sender_user: { id: 77 } } } }), /Pro для 77/);
-  assert.match(await cmd("/revoke 42"), /отозван/);
+  assert.match(await cmd("/grant HG-AAAA-BBBB-CCCC forever"), /навсегда/);
+  assert.match(await cmd(`/revoke ${CODE}`), /отозван/);
   assert.match(await cmd("/grant x"), /Формат/);
+  assert.match(await cmd("/help"), /\/grant <код>/);
 });
 
 test("signed status verifies with the public key and hides expired subscriptions", async () => {
   const { privateKey, publicKey } = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
-  const pkcs8 = Buffer.from(await crypto.subtle.exportKey("pkcs8", privateKey)).toString("base64");
-  const key = await importSigningKey(pkcs8);
-  const active = await signedStatus(key, { userId: 42, expiresAt: NOW + 10, now: NOW });
-  assert.equal(active.payload, `holygram-pro-v1|42|${NOW + 10}|${NOW}`);
+  const key = await importSigningKey(Buffer.from(await crypto.subtle.exportKey("pkcs8", privateKey)).toString("base64") + "\n");
+  const active = await signedStatus(key, { device: CODE, expiresAt: NOW + 10, now: NOW });
+  assert.equal(active.payload, `holygram-pro-v2|${CODE}|${NOW + 10}|${NOW}`);
   const ok = await crypto.subtle.verify({ name: "Ed25519" }, publicKey, Buffer.from(active.sig, "base64"), new TextEncoder().encode(active.payload));
   assert.equal(ok, true);
-  const expired = await signedStatus(key, { userId: 42, expiresAt: NOW - 10, now: NOW });
-  assert.equal(expired.payload, `holygram-pro-v1|42|0|${NOW}`);
+  const expired = await signedStatus(key, { device: CODE, expiresAt: NOW - 10, now: NOW });
+  assert.equal(expired.payload, `holygram-pro-v2|${CODE}|0|${NOW}`);
 });
 
 test("remote feature switches", async () => {
   const s = memoryStorage();
-  const cmd = (text, from = ADMIN) => handleCommand(s, { message: { text, from: { id: from } }, adminIds: [ADMIN], now: NOW });
-  assert.equal(await cmd("/disable ghost", 999), null, "non-admins can't switch features");
+  const cmd = async (text) => texts(await handleCommand(s, { message: msg(text, ADMIN), adminIds: [ADMIN], now: NOW }));
   assert.match(await cmd("/disable ghost"), /Выключено/);
   assert.deepEqual(await s.getDisabledFeatures(), ["ghost"]);
   assert.match(await cmd("/flags"), /⛔️ ghost/);

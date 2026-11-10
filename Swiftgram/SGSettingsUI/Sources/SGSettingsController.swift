@@ -164,26 +164,26 @@ private struct SGSettingsControllerState: Equatable {
 private typealias SGControllerEntry = SGItemListUIEntry<SGControllerSection, SGBoolSetting, SGSliderSetting, SGOneFromManySetting, SGDisclosureLink, AnyHashable>
 
 // MARK: HolyGram Pro status line for the settings screen
-private func holyGramProStatusText(lang: String, userId: Int64) -> String {
+private func holyGramProStatusText(lang: String) -> String {
     let pro = HolyGramPro.shared
-    let idLine = i18n("Settings.HGPro.YourId", lang, "\(userId)")
     guard pro.isConfigured else {
-        return i18n("Settings.HGPro.NotConfigured", lang) + "\n" + idLine
+        return i18n("Settings.HGPro.NotConfigured", lang)
     }
-    if let status = pro.status(userId: userId), status.isActive() {
+    let note = i18n("Settings.HGPro.DeviceNotice", lang)
+    if let status = pro.status, status.isActive() {
         if status.expiresAt == -1 {
-            return i18n("Settings.HGPro.ActiveForever", lang) + "\n" + idLine
+            return i18n("Settings.HGPro.ActiveForever", lang) + "\n" + note
         }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: lang)
         formatter.dateStyle = .long
         let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(status.expiresAt)))
-        return i18n("Settings.HGPro.ActiveUntil", lang, date) + "\n" + idLine
+        return i18n("Settings.HGPro.ActiveUntil", lang, date) + "\n" + note
     }
-    return i18n("Settings.HGPro.Inactive", lang) + "\n" + idLine
+    return i18n("Settings.HGPro.Inactive", lang) + "\n" + note
 }
 
-private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState, holyGramUserId: Int64) -> [SGControllerEntry] {
+private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState) -> [SGControllerEntry] {
     
     let lang = presentationData.strings.baseLanguageCode
     let strings = presentationData.strings
@@ -217,7 +217,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     let lock = hasPro ? "" : " 🔒"
     let ghostAvailable = SGSimpleSettings.shared.hgGhostAvailable
     entries.append(.header(id: id.count, section: .holyGramPro, text: "HOLYGRAM PRO", badge: nil))
-    entries.append(.notice(id: id.count, section: .holyGramPro, text: holyGramProStatusText(lang: lang, userId: holyGramUserId)))
+    entries.append(.action(id: id.count, section: .holyGramPro, actionType: AnyHashable("hgCopyDeviceCode"), text: i18n("Settings.HGPro.Device", lang, pro.displayDeviceCode), kind: .generic))
+    entries.append(.notice(id: id.count, section: .holyGramPro, text: holyGramProStatusText(lang: lang)))
     if !HolyGramPro.botUsername.isEmpty {
         entries.append(.disclosure(id: id.count, section: .holyGramPro, link: .holyGramProContact, text: i18n(hasPro && pro.isConfigured ? "Settings.HGPro.Manage" : "Settings.HGPro.Get", lang)))
     } else {
@@ -828,7 +829,7 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         }
         switch (link) {
             case .holyGramProContact:
-                context.sharedContext.applicationBindings.openUrl("https://t.me/\(HolyGramPro.botUsername)?start=pro")
+                context.sharedContext.applicationBindings.openUrl(HolyGramPro.shared.botRequestUrl)
             case .languageSettings:
                 pushControllerImpl?(context.sharedContext.makeLocalizationListController(context: context))
             case .contentSettings:
@@ -839,6 +840,14 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
                     strongContext.sharedContext.applicationBindings.openUrl(url)
                 })
         }
+    }, action: { [weak context] actionType in
+        // MARK: HolyGram: tap on the device code copies it
+        guard let context, actionType == AnyHashable("hgCopyDeviceCode") else {
+            return
+        }
+        UIPasteboard.general.string = HolyGramPro.shared.displayDeviceCode
+        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        presentControllerImpl?(UndoOverlayController(presentationData: presentationData, content: .copy(text: i18n("Settings.HGPro.DeviceCopied", presentationData.strings.baseLanguageCode)), elevatedLayout: false, action: { _ in return false }), nil)
     }, searchInput: { searchQuery in
         updateState { state in
             var updatedState = state
@@ -856,7 +865,7 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
     |> then(updatedContentSettingsConfiguration))
     
     // MARK: HolyGram Pro: refresh the status now and redraw when it changes
-    HolyGramPro.shared.refresh(userIds: [context.account.peerId.id._internalGetInt64Value()], force: true)
+    HolyGramPro.shared.refresh(force: true)
     let holyGramProChanges = Signal<Void, NoError> { subscriber in
         subscriber.putNext(Void())
         let observer = NotificationCenter.default.addObserver(forName: HolyGramPro.didChangeNotification, object: nil, queue: .main, using: { _ in
@@ -877,7 +886,7 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
         let callListSettings: CallListSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? CallListSettings.defaultSettings
         let experimentalUISettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
-        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state, holyGramUserId: context.account.peerId.id._internalGetInt64Value())
+        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state)
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("HolyGram"), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         

@@ -2289,7 +2289,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     func handleDidBecomeActive() {
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.holyGramApplyStreamerMode() // MARK: HolyGram
-        HolyGramPro.shared.refreshKnown() // MARK: HolyGram
+        HolyGramPro.shared.refresh() // MARK: HolyGram
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true

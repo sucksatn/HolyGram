@@ -321,3 +321,6 @@
 "Settings.HGPro.Inactive" = "Ghost mode, message history, hiding ads and other 🔒 features need HolyGram Pro.";
 "Settings.HGPro.Get" = "Get HolyGram Pro";
 "Settings.HGPro.Manage" = "Manage Subscription";
+"Settings.HGPro.Device" = "Device: %@";
+"Settings.HGPro.DeviceCopied" = "Device code copied";
+"Settings.HGPro.DeviceNotice" = "Pro belongs to this iPhone and works in all its accounts. Tap the code to copy it.";
