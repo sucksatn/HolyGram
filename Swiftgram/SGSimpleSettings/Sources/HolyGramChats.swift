@@ -65,3 +65,48 @@ public final class HolyGramChatLocks {
         })
     }
 }
+
+/// Index of messages HolyGram kept after they were deleted, newest last, for the Deleted Messages screen.
+public enum HolyGramDeletedIndex {
+    public struct Entry: Equatable {
+        public let peerId: Int64
+        public let namespace: Int32
+        public let id: Int32
+        public let deletedAt: Int32
+    }
+
+    private static let key = "holygram_deleted_index_v1"
+    private static let limit = 3000
+    private static let lock = NSLock()
+
+    public static func add(peerId: Int64, namespace: Int32, id: Int32, deletedAt: Int32) {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        var list = UserDefaults.standard.stringArray(forKey: self.key) ?? []
+        list.append("\(peerId):\(namespace):\(id):\(deletedAt)")
+        if list.count > self.limit {
+            list.removeFirst(list.count - self.limit)
+        }
+        UserDefaults.standard.set(list, forKey: self.key)
+    }
+
+    /// Newest first.
+    public static func entries() -> [Entry] {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        let list = UserDefaults.standard.stringArray(forKey: self.key) ?? []
+        return list.reversed().compactMap { line -> Entry? in
+            let parts = line.split(separator: ":")
+            guard parts.count == 4, let peerId = Int64(parts[0]), let namespace = Int32(parts[1]), let id = Int32(parts[2]), let deletedAt = Int32(parts[3]) else {
+                return nil
+            }
+            return Entry(peerId: peerId, namespace: namespace, id: id, deletedAt: deletedAt)
+        }
+    }
+
+    public static func clear() {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        UserDefaults.standard.removeObject(forKey: self.key)
+    }
+}
