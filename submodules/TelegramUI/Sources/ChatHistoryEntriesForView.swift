@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import UIKit
 import Postbox
 import TelegramCore
@@ -68,6 +69,7 @@ func chatHistoryEntriesForView(
         return ([], currentState)
     }
     var entries: [ChatHistoryEntry] = []
+    let hideBlockedUsersMessages = SGSimpleSettings.shared.hgHideBlockedUsersMessages // MARK: HolyGram
     var adminRanks: [PeerId: CachedChannelAdminRank] = [:]
     var stickersEnabled = true
     var chatPeer: Peer?
@@ -151,6 +153,11 @@ func chatHistoryEntriesForView(
         }
         
         if pendingRemovedMessages.contains(message.id) {
+            continue
+        }
+        
+        // MARK: HolyGram: hide blocked users in groups and channels' comments
+        if hideBlockedUsersMessages, message.id.peerId.namespace != Namespaces.Peer.CloudUser, message.flags.contains(.Incoming), let authorId = message.author?.id, HolyGramBlockedPeers.shared.contains(authorId.toInt64()) {
             continue
         }
         

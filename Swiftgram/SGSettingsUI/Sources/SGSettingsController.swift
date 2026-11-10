@@ -65,6 +65,7 @@ private enum SGBoolSetting: String {
     case hidePaidFeatureRows
     case confirmStickerSend
     case confirmVoiceSend
+    case hideBlockedUsersMessages
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -260,6 +261,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher && hasPro, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
@@ -536,6 +538,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.confirmStickerSend = value
         case .confirmVoiceSend:
             SGSimpleSettings.shared.confirmVoiceSend = value
+        case .hideBlockedUsersMessages:
+            SGSimpleSettings.shared.hideBlockedUsersMessages = value
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

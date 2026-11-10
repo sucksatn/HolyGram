@@ -254,3 +254,25 @@ private enum HolyGramDeviceCode {
         return "HG" + String(bytes.map { alphabet[Int($0) % alphabet.count] })
     }
 }
+
+/// Users blocked by any account on this device, used to hide their messages in groups.
+public final class HolyGramBlockedPeers {
+    public static let shared = HolyGramBlockedPeers()
+
+    private let lock = NSLock()
+    private var byAccount: [Int64: Set<Int64>] = [:]
+    private var all: Set<Int64> = []
+
+    public func update(accountPeerId: Int64, blocked: Set<Int64>) {
+        self.lock.lock()
+        self.byAccount[accountPeerId] = blocked
+        self.all = self.byAccount.values.reduce(into: Set<Int64>()) { $0.formUnion($1) }
+        self.lock.unlock()
+    }
+
+    public func contains(_ peerIdValue: Int64) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.all.contains(peerIdValue)
+    }
+}

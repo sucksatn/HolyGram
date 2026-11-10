@@ -129,6 +129,7 @@ public class SGSimpleSettings {
         case streamerMode
         case hidePaidFeatureRows
         case confirmStickerSend
+        case hideBlockedUsersMessages
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -308,6 +309,7 @@ public class SGSimpleSettings {
         Keys.streamerMode.rawValue: false,
         Keys.hidePaidFeatureRows.rawValue: false,
         Keys.confirmStickerSend.rawValue: false,
+        Keys.hideBlockedUsersMessages.rawValue: false,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -489,6 +491,10 @@ public class SGSimpleSettings {
     // MARK: HolyGram: ask before sending
     @UserDefault(key: Keys.confirmStickerSend.rawValue)
     public var confirmStickerSend: Bool
+
+    /// Hide messages of blocked users in groups.
+    @UserDefault(key: Keys.hideBlockedUsersMessages.rawValue)
+    public var hideBlockedUsersMessages: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
@@ -777,6 +783,7 @@ extension SGSimpleSettings {
     public var hgShowRepeat: Bool { contextShowRepeat && hgPro }
     public var hgConfirmStickerSend: Bool { confirmStickerSend && hgPro }
     public var hgConfirmVoiceSend: Bool { confirmVoiceSend && hgPro }
+    public var hgHideBlockedUsersMessages: Bool { hideBlockedUsersMessages && hgPro }
     
     public static func makeOutgoingLanguageTranslationKey(accountId: Int64, peerId: Int64) -> String {
         return "\(accountId):\(peerId)"
