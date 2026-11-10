@@ -142,6 +142,7 @@ public class SGSimpleSettings {
         case contextShowSaveMedia
         case contextShowMessageReplies
         case contextShowJson
+        case contextShowRepeat // MARK: HolyGram
         case disableScrollToNextChannel
         case disableScrollToNextTopic
         case disableChatSwipeOptions
@@ -312,6 +313,7 @@ public class SGSimpleSettings {
         Keys.contextShowSaveMedia.rawValue: true,
         Keys.contextShowMessageReplies.rawValue: true,
         Keys.contextShowJson.rawValue: false,
+        Keys.contextShowRepeat.rawValue: true,
         Keys.disableScrollToNextChannel.rawValue: false,
         Keys.disableScrollToNextTopic.rawValue: false,
         Keys.disableChatSwipeOptions.rawValue: false,
@@ -507,6 +509,10 @@ public class SGSimpleSettings {
     
     @UserDefault(key: Keys.contextShowJson.rawValue)
     public var contextShowJson: Bool
+
+    // MARK: HolyGram: "+1" repeats a message in the same chat
+    @UserDefault(key: Keys.contextShowRepeat.rawValue)
+    public var contextShowRepeat: Bool
     
     @UserDefault(key: Keys.disableScrollToNextChannel.rawValue)
     public var disableScrollToNextChannel: Bool

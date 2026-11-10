@@ -100,6 +100,7 @@ enum SGContextMenuActionFactory {
     case saveToCloud(interfaceInteraction: ChatPanelInterfaceInteraction, selectAll: Bool, isImage: Bool, messages: [EngineRawMessage])
     case hideForwardName(interfaceInteraction: ChatPanelInterfaceInteraction, selectAll: Bool, isImage: Bool, messages: [EngineRawMessage])
     case editHistory(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case repeatMessage(context: AccountContext) // MARK: HolyGram
 }
 
 func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) -> ContextMenuItem {
@@ -126,6 +127,15 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             f(.dismissWithoutContent)
         }))
     // MARK: HolyGram
+    case let .repeatMessage(context):
+        return .action(ContextMenuActionItem(text: "+1", icon: { theme in
+            return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Repeat") ?? UIImage(bundleImageName: "Chat/Context Menu/Forward"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            let _ = enqueueMessages(account: context.account, peerId: message.id.peerId, messages: [
+                .forward(source: message.id, threadId: message.threadId, grouping: .auto, attributes: [ForwardOptionsMessageAttribute(hideNames: true, hideCaptions: false)], correlationId: nil)
+            ]).startStandalone()
+        }))
     case let .editHistory(controllerInteraction):
         return .action(ContextMenuActionItem(text: i18n("Message.HolyGram.EditHistory", chatPresentationInterfaceState.strings.baseLanguageCode), icon: { theme in
             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Edit"), color: theme.actionSheet.primaryTextColor)

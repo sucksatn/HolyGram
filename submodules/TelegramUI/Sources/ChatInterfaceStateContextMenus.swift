@@ -1589,6 +1589,9 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
         //
         // MARK: HolyGram
+        if SGSimpleSettings.shared.contextShowRepeat && !message.isCopyProtected() && message.id.namespace == Namespaces.Message.Cloud && canSendMessagesToChat(chatPresentationInterfaceState) {
+            actions.append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+        }
         if !message.holyGramEditHistory.isEmpty {
             actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
