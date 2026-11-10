@@ -10,6 +10,8 @@ import {
 } from "./core.js";
 
 const CRYPTO_ASSETS = "USDT,TON,BTC,ETH,LTC,BNB,TRX,USDC";
+export const TRIAL_DAYS = 3;
+const MEMBER_STATUSES = new Set(["creator", "administrator", "member"]);
 const DEVICE_PATTERN = /HG-?[0-9A-Z]{4}-?[0-9A-Z]{4}-?[0-9A-Z]{4}/i;
 
 function isRussian(user) {
@@ -80,6 +82,9 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
         ru ? "Pro привязан к iPhone и работает во всех аккаунтах на нём." : "Pro belongs to the iPhone and works in all of its accounts.",
       ].join("\n");
       if (record?.expiresAt !== FOREVER) {
+        if (await trialAvailable(user, device)) {
+          rows.push([button(ru ? `🎁 ${TRIAL_DAYS} дня Pro бесплатно` : `🎁 ${TRIAL_DAYS} days of Pro free`, "trial")]);
+        }
         rows.push([button(active ? (ru ? "💎 Продлить Pro" : "💎 Extend Pro") : (ru ? "💎 Купить Pro" : "💎 Buy Pro"), "buy")]);
       }
       rows.push([button(ru ? "🔄 Обновить" : "🔄 Refresh", "menu")]);
@@ -213,7 +218,126 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
     ].join("\n"));
   }
 
+  // ---------- free trial for joining channels ----------
+
+  /** One trial per device and per Telegram account, offered only while channels are set. */
+  async function trialAvailable(user, device) {
+    if (!device) return false;
+    const channels = await storage.getTrialChannels();
+    if (channels.length === 0) return false;
+    if (await storage.getTrialClaim(`dev:${device}`)) return false;
+    if (await storage.getTrialClaim(`user:${user.id}`)) return false;
+    return true;
+  }
+
+  async function trialMenu(user, chatId, messageId, notice) {
+    const ru = isRussian(user);
+    const device = await storage.getUserDevice(user.id);
+    if (!(await trialAvailable(user, device))) return mainMenu(user, chatId, messageId);
+    const channels = await storage.getTrialChannels();
+    const rows = channels.map((channel) => [urlButton(`📢 ${channel.title}`, channel.url)]);
+    rows.push([button(ru ? "✅ Я подписался" : "✅ I've joined", "trial:check")]);
+    rows.push([button(ru ? "◀️ Назад" : "◀️ Back", "menu")]);
+    await show(chatId, messageId, [
+      notice || null,
+      notice ? "" : null,
+      ru ? `🎁 ${TRIAL_DAYS} дня HolyGram Pro бесплатно` : `🎁 ${TRIAL_DAYS} days of HolyGram Pro free`,
+      "",
+      ru ? "Подпишитесь на каналы ниже и нажмите «Я подписался»:" : "Join the channels below, then tap “I've joined”:",
+      ...channels.map((channel) => `• ${channel.title}`),
+      "",
+      `${ru ? "Устройство" : "Device"}: ${formatDeviceCode(device)}`,
+      ru ? "Пробный период можно получить один раз на устройство." : "The trial is available once per device.",
+    ].filter((line) => line !== null).join("\n"), keyboard(rows));
+  }
+
+  async function trialCheck(user, chatId, messageId) {
+    const ru = isRussian(user);
+    const device = await storage.getUserDevice(user.id);
+    if (!(await trialAvailable(user, device))) return mainMenu(user, chatId, messageId);
+    const channels = await storage.getTrialChannels();
+    const missing = [];
+    for (const channel of channels) {
+      let joined = false;
+      try {
+        const member = await tg("getChatMember", { chat_id: channel.chat, user_id: user.id });
+        joined = MEMBER_STATUSES.has(member?.status) || (member?.status === "restricted" && member?.is_member === true);
+      } catch {
+        joined = false;
+      }
+      if (!joined) missing.push(channel.title);
+    }
+    if (missing.length > 0) {
+      return trialMenu(user, chatId, messageId, (ru ? "❌ Нет подписки на: " : "❌ Not joined yet: ") + missing.join(", "));
+    }
+    await storage.setTrialClaim(`dev:${device}`, { device, user: user.id, at: now });
+    await storage.setTrialClaim(`user:${user.id}`, { device, user: user.id, at: now });
+    const record = await grant(storage, { device, seconds: TRIAL_DAYS * 86400, note: null, grantedBy: "trial", now });
+    await show(chatId, messageId, ru
+      ? `✅ Готово! HolyGram Pro активен ${formatExpiry(record.expiresAt, now)}.\n\nОткройте HolyGram → Настройки → HolyGram, чтобы Pro включился сразу.`
+      : `✅ Done! HolyGram Pro is active (${formatExpiry(record.expiresAt, now)}).\n\nOpen HolyGram → Settings → HolyGram to turn it on right away.`,
+    keyboard([[button(ru ? "💎 Моя подписка" : "💎 My subscription", "menu")]]));
+    await notifyAdmins(`🎁 Пробный период ${TRIAL_DAYS} дня · ${formatDeviceCode(device)}\nОт: ${userLabel(user)}`);
+  }
+
   // ---------- admin screens ----------
+
+  async function adminTrial(chatId, messageId, notice) {
+    const channels = await storage.getTrialChannels();
+    const rows = channels.map((channel, index) => [urlButton(`📢 ${channel.title}`, channel.url), button("❌ Убрать", `t:del:${index}`)]);
+    rows.push([button("➕ Добавить канал", "t:add")]);
+    rows.push([button("◀️ Админ-панель", "admin")]);
+    await show(chatId, messageId, [
+      notice || null,
+      notice ? "" : null,
+      `🎁 Пробный период ${TRIAL_DAYS} дня за подписку`,
+      "",
+      channels.length === 0
+        ? "Каналов нет — кнопка пробного периода у пользователей скрыта."
+        : `Каналы (${channels.length}): пользователь должен быть подписан на все.`,
+      "",
+      "Бот должен быть администратором каждого канала, иначе он не сможет проверить подписку.",
+      "Один пробный период на устройство и на Telegram-аккаунт.",
+    ].filter((line) => line !== null).join("\n"), keyboard(rows));
+  }
+
+  /** Resolves "@name", a t.me link, a numeric id or a forwarded channel post into a stored channel. */
+  async function addTrialChannel(message) {
+    const text = (message.text || "").trim();
+    let chatRef = message.forward_origin?.chat?.id ?? message.forward_from_chat?.id ?? null;
+    if (chatRef === null) {
+      const link = /^(?:https?:\/\/)?(?:t\.me|telegram\.me)\/([A-Za-z0-9_]{4,})\/?$/i.exec(text);
+      if (link) chatRef = `@${link[1]}`;
+      else if (/^@[A-Za-z0-9_]{4,}$/.test(text)) chatRef = text;
+      else if (/^-100\d+$/.test(text)) chatRef = Number(text);
+    }
+    if (chatRef === null) {
+      return "Не понял. Пришлите @username канала, ссылку t.me/… или перешлите пост из канала.";
+    }
+    let chat;
+    try {
+      chat = await tg("getChat", { chat_id: chatRef });
+    } catch {
+      return "Канал не найден или бот не может его открыть. Добавьте бота в канал администратором и попробуйте снова.";
+    }
+    try {
+      const me = await tg("getMe", {});
+      const member = await tg("getChatMember", { chat_id: chat.id, user_id: me.id });
+      if (member?.status !== "administrator" && member?.status !== "creator") throw new Error("not admin");
+    } catch {
+      return `Бот не администратор в «${chat.title || chatRef}». Добавьте его администратором (права можно не давать) и пришлите канал снова.`;
+    }
+    const url = chat.username ? `https://t.me/${chat.username}` : chat.invite_link;
+    if (!url) {
+      return "У канала нет публичной ссылки, а бот не смог получить ссылку-приглашение. Дайте боту право приглашать участников.";
+    }
+    const channels = await storage.getTrialChannels();
+    if (channels.some((channel) => channel.chat === chat.id)) return "Этот канал уже в списке.";
+    channels.push({ chat: chat.id, title: chat.title || chat.username || String(chat.id), url });
+    await storage.setTrialChannels(channels);
+    return null;
+  }
+
 
   async function adminPanel(chatId, messageId) {
     const counts = await storage.counts(now);
@@ -228,6 +352,7 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
     ].join("\n"), keyboard([
       [button("➕ Выдать Pro", "a:grant"), button("📋 Подписки", "a:list")],
       [button("💰 Продажи", "a:sales"), button("🎚 Функции", "a:flags")],
+      [button("🎁 Пробный период за подписку", "a:trial")],
       [button("◀️ Меню", "menu")],
     ]));
   }
@@ -351,6 +476,14 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
         default:
           break;
       }
+      if (state === "trial_add" && !command) {
+        const error = await addTrialChannel(message);
+        if (error) {
+          return tg("sendMessage", { chat_id: chatId, text: error, reply_markup: keyboard([[button("◀️ Отмена", "a:trial")]]) });
+        }
+        await storage.setState(user.id, null);
+        return adminTrial(chatId, null, "✅ Канал добавлен");
+      }
       // A device code sent as text opens its card (also after "➕ Выдать Pro").
       const typed = normalizeDeviceCode(DEVICE_PATTERN.exec(text)?.[0]);
       if (typed && (state === "grant_code" || !command)) {
@@ -392,6 +525,8 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
 
     if (data === "menu") return mainMenu(user, chatId, messageId);
     if (data === "buy") return plansMenu(user, chatId, messageId);
+    if (data === "trial") return trialMenu(user, chatId, messageId);
+    if (data === "trial:check") return trialCheck(user, chatId, messageId);
     if (data.startsWith("plan:")) {
       const plan = planById(data.slice(5));
       return plan ? methodMenu(user, chatId, messageId, plan) : plansMenu(user, chatId, messageId);
@@ -418,6 +553,23 @@ export function createBot({ storage, tg, crypto, adminIds, now, botUsername }) {
     if (data === "a:list") return adminList(chatId, messageId);
     if (data === "a:sales") return adminSales(chatId, messageId);
     if (data === "a:flags") return adminFlags(chatId, messageId);
+    if (data === "a:trial") {
+      await storage.setState(user.id, null);
+      return adminTrial(chatId, messageId);
+    }
+    if (data === "t:add") {
+      await storage.setState(user.id, "trial_add");
+      return show(chatId, messageId, "➕ Добавить канал\n\nПришлите @username канала, ссылку t.me/… или перешлите сюда любой пост из канала.\n\nСначала добавьте бота администратором в канал.", keyboard([[button("◀️ Отмена", "a:trial")]]));
+    }
+    if (data.startsWith("t:del:")) {
+      const index = Number(data.slice(6));
+      const channels = await storage.getTrialChannels();
+      if (Number.isInteger(index) && index >= 0 && index < channels.length) {
+        channels.splice(index, 1);
+        await storage.setTrialChannels(channels);
+      }
+      return adminTrial(chatId, messageId, "Канал убран");
+    }
     if (data.startsWith("f:")) {
       const name = data.slice(2);
       if (name in SWITCHABLE_FEATURES) {

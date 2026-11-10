@@ -9,6 +9,8 @@ import { importSigningKey, normalizeDeviceCode, signedFlags, signedStatus } from
 //   state:<telegram id> admin input state (expires after an hour)
 //   pay:<payment id>   payment record (also makes payments idempotent)
 //   flags:disabled     comma-separated remotely disabled features
+//   trial:channels     channels to join for the free trial (JSON)
+//   trial:dev:<code>, trial:user:<id>  trial already claimed
 export function kvStorage(kv) {
   async function listValues(prefix) {
     const values = [];
@@ -78,6 +80,18 @@ export function kvStorage(kv) {
     },
     async setDisabledFeatures(list) {
       await kv.put("flags:disabled", list.join(","));
+    },
+    async getTrialChannels() {
+      return (await kv.get("trial:channels", "json")) || [];
+    },
+    async setTrialChannels(list) {
+      await kv.put("trial:channels", JSON.stringify(list));
+    },
+    async getTrialClaim(key) {
+      return await kv.get(`trial:${key}`, "json");
+    },
+    async setTrialClaim(key, record) {
+      await kv.put(`trial:${key}`, JSON.stringify(record));
     },
   };
 }

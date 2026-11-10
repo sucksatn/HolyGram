@@ -13,6 +13,8 @@ function memoryStorage() {
   const states = new Map();
   const payments = new Map();
   let disabled = [];
+  let trialChannels = [];
+  const trialClaims = new Map();
   const active = (r, now) => r.expiresAt === -1 || r.expiresAt > now;
   return {
     devices, payments,
@@ -32,6 +34,10 @@ function memoryStorage() {
     async listPayments() { return [...payments.values()]; },
     async getDisabledFeatures() { return disabled; },
     async setDisabledFeatures(list) { disabled = list; },
+    async getTrialChannels() { return trialChannels.map((c) => ({ ...c })); },
+    async setTrialChannels(list) { trialChannels = list; },
+    async getTrialClaim(key) { return trialClaims.get(key) ?? null; },
+    async setTrialClaim(key, record) { trialClaims.set(key, record); },
   };
 }
 
@@ -44,8 +50,10 @@ function harness({ withCrypto = true } = {}) {
   const storage = memoryStorage();
   const calls = [];
   let nextMessageId = 100;
+  const responders = {};
   const tg = async (method, params) => {
     calls.push({ method, params });
+    if (responders[method]) return responders[method](params);
     return method === "sendMessage" ? { message_id: nextMessageId++ } : true;
   };
   const cryptoCalls = [];
@@ -60,7 +68,7 @@ function harness({ withCrypto = true } = {}) {
   const sent = () => calls.filter((c) => c.method === "sendMessage" || c.method === "editMessageText");
   const last = () => sent().at(-1).params;
   const buttons = (params) => (params.reply_markup?.inline_keyboard || []).flat();
-  return { storage, calls, cryptoCalls, bot, send, press, sent, last, buttons, user };
+  return { storage, calls, cryptoCalls, bot, send, press, sent, last, buttons, user, responders };
 }
 
 test("device codes", () => {
@@ -231,4 +239,71 @@ test("Crypto Pay webhook signature", async () => {
   assert.equal(await verifyCryptoPaySignature(token, body + " ", sig), false);
   assert.equal(await verifyCryptoPaySignature(token, body, null), false);
   assert.equal(await verifyCryptoPaySignature(undefined, body, sig), false);
+});
+
+test("free trial: admin adds a channel, a user joins it and gets 3 days once", async () => {
+  const h = harness();
+  const CHANNEL = -1001234;
+  const members = new Set();
+  h.responders.getChat = ({ chat_id }) => {
+    if (chat_id !== "@holygram_news" && chat_id !== CHANNEL) throw new Error("not found");
+    return { id: CHANNEL, title: "HolyGram News", username: "holygram_news" };
+  };
+  h.responders.getMe = () => ({ id: 5 });
+  h.responders.getChatMember = ({ user_id }) => ({ status: user_id === 5 ? "administrator" : (members.has(user_id) ? "member" : "left") });
+
+  // No channels: no trial button.
+  await h.send(USER, `/start ${CODE}`);
+  assert.ok(!h.buttons(h.last()).some((b) => b.callback_data === "trial"));
+
+  await h.press(ADMIN, "a:trial");
+  await h.press(ADMIN, "t:add");
+  await h.send(ADMIN, "https://t.me/holygram_news");
+  assert.match(h.last().text, /Канал добавлен/);
+  assert.deepEqual(await h.storage.getTrialChannels(), [{ chat: CHANNEL, title: "HolyGram News", url: "https://t.me/holygram_news" }]);
+  await h.press(ADMIN, "t:add");
+  await h.send(ADMIN, "@holygram_news");
+  assert.match(h.last().text, /уже в списке/);
+
+  await h.press(USER, "menu");
+  assert.ok(h.buttons(h.last()).some((b) => b.callback_data === "trial"));
+  await h.press(USER, "trial");
+  assert.ok(h.buttons(h.last()).some((b) => b.url === "https://t.me/holygram_news"));
+
+  // Not joined yet.
+  await h.press(USER, "trial:check");
+  assert.match(h.last().text, /Нет подписки на: HolyGram News/);
+  assert.equal(h.storage.devices.get(CODE).expiresAt, 0);
+
+  members.add(USER);
+  await h.press(USER, "trial:check");
+  assert.ok(h.sent().some((c) => c.params.chat_id === USER && /Готово/.test(c.params.text)));
+  assert.equal(h.storage.devices.get(CODE).expiresAt, NOW + 3 * 86400);
+  assert.ok(h.sent().some((c) => c.params.chat_id === ADMIN && /Пробный период/.test(c.params.text)));
+
+  // Only once: the button is gone and pressing an old one changes nothing.
+  await h.press(USER, "menu");
+  assert.ok(!h.buttons(h.last()).some((b) => b.callback_data === "trial"));
+  await h.press(USER, "trial:check");
+  assert.equal(h.storage.devices.get(CODE).expiresAt, NOW + 3 * 86400);
+
+  // Another account opening the same device gets no trial either.
+  const OTHER = 777;
+  await h.send(OTHER, `/start ${CODE}`);
+  assert.ok(!h.buttons(h.last()).some((b) => b.callback_data === "trial"));
+
+  // The admin can remove the channel.
+  await h.press(ADMIN, "t:del:0");
+  assert.deepEqual(await h.storage.getTrialChannels(), []);
+});
+
+test("free trial: a channel where the bot isn't admin is refused", async () => {
+  const h = harness();
+  h.responders.getChat = () => ({ id: -1009, title: "Other", username: "other_channel" });
+  h.responders.getMe = () => ({ id: 5 });
+  h.responders.getChatMember = () => ({ status: "left" });
+  await h.press(ADMIN, "t:add");
+  await h.send(ADMIN, "@other_channel");
+  assert.match(h.last().text, /не администратор/);
+  assert.deepEqual(await h.storage.getTrialChannels(), []);
 });
