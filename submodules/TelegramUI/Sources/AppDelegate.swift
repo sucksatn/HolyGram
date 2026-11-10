@@ -596,6 +596,16 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         // then the shared container doesn't exist. Fall back to a folder inside the app's own
         // container so the app still starts; extensions (share, notifications) can't see its data then.
         var maybeAppGroupUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+        if maybeAppGroupUrl == nil {
+            // Sideloadly with "Change bundle ID" registers the group under another name: take it
+            // from the provisioning profile it embedded.
+            for groupName in holyGramProvisionedAppGroups() {
+                if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupName) {
+                    maybeAppGroupUrl = url
+                    break
+                }
+            }
+        }
         if maybeAppGroupUrl == nil, let applicationSupportUrl = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             let fallbackUrl = applicationSupportUrl.appendingPathComponent("HolyGramSharedContainer", isDirectory: true)
             try? FileManager.default.createDirectory(at: fallbackUrl, withIntermediateDirectories: true, attributes: nil)
@@ -3834,3 +3844,18 @@ extension AppDelegate {
     }
 }
 //
+
+// MARK: HolyGram: App Groups listed in the embedded provisioning profile
+private func holyGramProvisionedAppGroups() -> [String] {
+    guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"), let data = try? Data(contentsOf: url) else {
+        return []
+    }
+    guard let start = data.range(of: Data("<?xml".utf8)), let end = data.range(of: Data("</plist>".utf8), options: [], in: start.lowerBound ..< data.endIndex) else {
+        return []
+    }
+    let plistData = data.subdata(in: start.lowerBound ..< end.upperBound)
+    guard let plist = try? PropertyListSerialization.propertyList(from: plistData, options: [], format: nil) as? [String: Any], let entitlements = plist["Entitlements"] as? [String: Any], let groups = entitlements["com.apple.security.application-groups"] as? [String] else {
+        return []
+    }
+    return groups.filter { !$0.contains("*") }
+}
