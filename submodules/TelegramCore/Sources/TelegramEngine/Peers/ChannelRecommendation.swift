@@ -1,6 +1,7 @@
 import Foundation
 import Postbox
 import SwiftSignalKit
+import SGSimpleSettings // MARK: HolyGram
 internal import TelegramApi
 import MtProtoKit
 
@@ -237,6 +238,10 @@ func _internal_recommendedAppPeerIds(account: Account) -> Signal<[EnginePeer.Id]
 }
 
 func _internal_recommendedChannels(account: Account, peerId: EnginePeer.Id?) -> Signal<RecommendedChannels?, NoError> {
+    // MARK: HolyGram: no "Similar channels" block or tab
+    if SGSimpleSettings.shared.hideSimilarChannels, peerId != nil {
+        return .single(nil)
+    }
     let key = PostboxViewKey.cachedItem(entryId(peerId: peerId))
     return account.postbox.combinedView(keys: [key])
     |> mapToSignal { views -> Signal<RecommendedChannels?, NoError> in

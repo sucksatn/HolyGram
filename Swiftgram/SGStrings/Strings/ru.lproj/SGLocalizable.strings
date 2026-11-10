@@ -319,3 +319,6 @@
 "Settings.HGPro.Device" = "Устройство: %@";
 "Settings.HGPro.DeviceCopied" = "Код устройства скопирован";
 "Settings.HGPro.DeviceNotice" = "Pro привязан к этому iPhone и работает во всех аккаунтах на нём. Нажмите на код, чтобы скопировать.";
+"Settings.HGPrivacy.HideBlocked" = "Скрывать заблокированных в группах";
+"Settings.Folders.HideBadges" = "Скрыть счётчики на папках";
+"Settings.HGPrivacy.HideSimilarChannels" = "Скрыть «Похожие каналы»";

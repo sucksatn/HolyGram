@@ -112,7 +112,7 @@ func managedSynchronizeConsumeMessageContentOperations(postbox: Postbox, network
 
 private func synchronizeConsumeMessageContents(transaction: Transaction, network: Network, stateManager: AccountStateManager, peerId: PeerId, operation: SynchronizeConsumeMessageContentsOperation) -> Signal<Void, NoError> {
     // MARK: HolyGram ghost mode: voice/video messages stay "unplayed" for the sender.
-    if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+    if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) {
         return .complete()
     }
     if peerId.namespace == Namespaces.Peer.CloudUser || peerId.namespace == Namespaces.Peer.CloudGroup {

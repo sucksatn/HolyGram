@@ -207,6 +207,7 @@ private final class ItemNode: ASDisplayNode {
     }
     
     func updateText(strings: PresentationStrings, title: ChatFolderTitle, shortTitle: ChatFolderTitle, unreadCount: Int, unreadHasUnmuted: Bool, isNoFilter: Bool, selectionFraction: CGFloat, isEditing: Bool, isReordering: Bool, canReorderAllChats: Bool, isDisabled: Bool, presentationData: PresentationData, transition: ContainedViewLayoutTransition) {
+        let unreadCount = SGSimpleSettings.shared.hideFolderBadges ? 0 : unreadCount // MARK: HolyGram
         self.isEditing = isEditing
         self.isDisabled = isDisabled
         

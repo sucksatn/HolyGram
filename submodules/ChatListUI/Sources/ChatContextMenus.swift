@@ -1,4 +1,5 @@
 import Foundation
+import SGSimpleSettings // MARK: HolyGram
 import UIKit
 import SwiftSignalKit
 import ContextUI
@@ -365,6 +366,23 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                 items.append(.separator)
                             }
                         }
+                        
+                        // MARK: HolyGram: per-chat exception from ghost mode's hidden read receipts
+                        if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                            let isException = SGSimpleSettings.shared.isGhostReadException(peerId.toInt64())
+                            let isRussian = strings.baseLanguageCode.hasPrefix("ru") || strings.baseLanguageCode.hasPrefix("uk")
+                            let title: String
+                            if isException {
+                                title = isRussian ? "Скрывать прочтение здесь" : "Hide Read Receipts Here"
+                            } else {
+                                title = isRussian ? "Отправлять прочтение здесь" : "Send Read Receipts Here"
+                            }
+                            items.append(.action(ContextMenuActionItem(text: title, icon: { theme in generateTintedImage(image: UIImage(systemName: isException ? "eye.slash" : "eye"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                SGSimpleSettings.shared.setGhostReadException(peerId.toInt64(), !isException)
+                                f(.default)
+                            })))
+                        }
+                        //
                         
                         if !isCommunity {
                             if isUnread {

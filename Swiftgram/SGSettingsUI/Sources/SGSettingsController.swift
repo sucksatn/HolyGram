@@ -65,6 +65,9 @@ private enum SGBoolSetting: String {
     case hidePaidFeatureRows
     case confirmStickerSend
     case confirmVoiceSend
+    case hideBlockedUsersMessages
+    case hideFolderBadges
+    case hideSimilarChannels
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -260,6 +263,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: SGSimpleSettings.shared.hideSimilarChannels, text: i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher && hasPro, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
@@ -280,6 +285,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     #if DEBUG
 //    entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsFolderPositionOverride, text: i18n("Settings.Folders.AllChatsPlacement", lang), value: i18n("Settings.Folders.AllChatsPlacement.\(SGSimpleSettings.shared.allChatsFolderPositionOverride)", lang), enabled: true))
     #endif
+    entries.append(.toggle(id: id.count, section: .folders, settingName: .hideFolderBadges, value: SGSimpleSettings.shared.hideFolderBadges, text: i18n("Settings.Folders.HideBadges", lang), enabled: true)) // MARK: HolyGram
     entries.append(.toggle(id: id.count, section: .folders, settingName: .compactFolderNames, value: SGSimpleSettings.shared.compactFolderNames, text: i18n("Settings.Folders.CompactNames", lang), enabled: true))
     entries.append(.oneFromManySelector(id: id.count, section: .folders, settingName: .allChatsTitleLengthOverride, text: i18n("Settings.Folders.AllChatsTitle", lang), value: i18n("Settings.Folders.AllChatsTitle.\(SGSimpleSettings.shared.allChatsTitleLengthOverride)", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .folders, settingName: .rememberLastFolder, value: SGSimpleSettings.shared.rememberLastFolder, text: i18n("Settings.Folders.RememberLast", lang), enabled: true))
@@ -536,6 +542,13 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.confirmStickerSend = value
         case .confirmVoiceSend:
             SGSimpleSettings.shared.confirmVoiceSend = value
+        case .hideBlockedUsersMessages:
+            SGSimpleSettings.shared.hideBlockedUsersMessages = value
+        case .hideFolderBadges:
+            SGSimpleSettings.shared.hideFolderBadges = value
+        case .hideSimilarChannels:
+            SGSimpleSettings.shared.hideSimilarChannels = value
+            askForRestart?()
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
         case .warnOnStoriesOpen:

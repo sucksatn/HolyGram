@@ -269,7 +269,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
             return .single(readState)
         }
         // MARK: HolyGram ghost mode: keep the read mark local.
-        if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+        if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) {
             return .single(readState)
         }
         return inputSecretChat(postbox: postbox, peerId: peerId)
@@ -303,7 +303,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
                         return .complete()
                     }
                     // MARK: HolyGram ghost mode: keep the read mark local.
-                    if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                    if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) {
                         pushSignal = .complete()
                     }
                     if markedUnread {
@@ -346,7 +346,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
                     }
 
                     // MARK: HolyGram ghost mode: keep the read mark local.
-                    if SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                    if SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerId.toInt64()) {
                         pushSignal = .complete()
                     }
                     if markedUnread {

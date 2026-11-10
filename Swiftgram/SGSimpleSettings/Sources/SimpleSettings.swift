@@ -122,12 +122,16 @@ public class SGSimpleSettings {
         case ghostNoTyping
         case ghostNoStoryViews
         case ghostReadOnReply
+        case ghostReadExceptions
         case hideInAppSwitcher
         case hideSponsoredMessages
         case keepSelfDestructingMedia
         case streamerMode
         case hidePaidFeatureRows
         case confirmStickerSend
+        case hideBlockedUsersMessages
+        case hideFolderBadges
+        case hideSimilarChannels
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -300,12 +304,16 @@ public class SGSimpleSettings {
         Keys.ghostNoTyping.rawValue: true,
         Keys.ghostNoStoryViews.rawValue: true,
         Keys.ghostReadOnReply.rawValue: true,
+        Keys.ghostReadExceptions.rawValue: [String](),
         Keys.hideInAppSwitcher.rawValue: false,
         Keys.hideSponsoredMessages.rawValue: true,
         Keys.keepSelfDestructingMedia.rawValue: false,
         Keys.streamerMode.rawValue: false,
         Keys.hidePaidFeatureRows.rawValue: false,
         Keys.confirmStickerSend.rawValue: false,
+        Keys.hideBlockedUsersMessages.rawValue: false,
+        Keys.hideFolderBadges.rawValue: false,
+        Keys.hideSimilarChannels.rawValue: false,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -459,6 +467,10 @@ public class SGSimpleSettings {
     @UserDefault(key: Keys.ghostReadOnReply.rawValue)
     public var ghostReadOnReply: Bool
 
+    /// Chats (peer ids) where read receipts are sent even in ghost mode.
+    @UserDefault(key: Keys.ghostReadExceptions.rawValue)
+    public var ghostReadExceptions: [String]
+
     // MARK: HolyGram privacy
     /// Blur the app in the app switcher.
     @UserDefault(key: Keys.hideInAppSwitcher.rawValue)
@@ -483,6 +495,18 @@ public class SGSimpleSettings {
     // MARK: HolyGram: ask before sending
     @UserDefault(key: Keys.confirmStickerSend.rawValue)
     public var confirmStickerSend: Bool
+
+    /// Hide messages of blocked users in groups.
+    @UserDefault(key: Keys.hideBlockedUsersMessages.rawValue)
+    public var hideBlockedUsersMessages: Bool
+
+    /// Hide unread counters on chat folder tabs.
+    @UserDefault(key: Keys.hideFolderBadges.rawValue)
+    public var hideFolderBadges: Bool
+
+    /// Hide the "Similar channels" block and profile tab.
+    @UserDefault(key: Keys.hideSimilarChannels.rawValue)
+    public var hideSimilarChannels: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
@@ -743,6 +767,20 @@ extension SGSimpleSettings {
     public var ghostBlocksOnline: Bool { ghostActive && ghostHideOnline }
     /// Messages are marked read locally only; the sender keeps seeing them as unread.
     public var ghostBlocksReadReceipts: Bool { ghostActive && ghostNoReadReceipts }
+    /// Same, except in chats the user excluded from ghost mode.
+    public func ghostBlocksReadReceiptsInChat(_ peerIdValue: Int64) -> Bool {
+        return ghostBlocksReadReceipts && !ghostReadExceptions.contains(String(peerIdValue))
+    }
+    public func isGhostReadException(_ peerIdValue: Int64) -> Bool {
+        return ghostReadExceptions.contains(String(peerIdValue))
+    }
+    public func setGhostReadException(_ peerIdValue: Int64, _ enabled: Bool) {
+        var list = ghostReadExceptions.filter { $0 != String(peerIdValue) }
+        if enabled {
+            list.append(String(peerIdValue))
+        }
+        ghostReadExceptions = list
+    }
     /// "typing…", "recording voice…" and similar activities are not sent.
     public var ghostBlocksTyping: Bool { ghostActive && ghostNoTyping }
     /// Stories are viewed without the author seeing it.
@@ -757,6 +795,7 @@ extension SGSimpleSettings {
     public var hgShowRepeat: Bool { contextShowRepeat && hgPro }
     public var hgConfirmStickerSend: Bool { confirmStickerSend && hgPro }
     public var hgConfirmVoiceSend: Bool { confirmVoiceSend && hgPro }
+    public var hgHideBlockedUsersMessages: Bool { hideBlockedUsersMessages && hgPro }
     
     public static func makeOutgoingLanguageTranslationKey(accountId: Int64, peerId: Int64) -> String {
         return "\(accountId):\(peerId)"

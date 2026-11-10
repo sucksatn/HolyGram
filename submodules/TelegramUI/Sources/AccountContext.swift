@@ -201,6 +201,9 @@ public final class AccountContextImpl: AccountContext {
     private var managedAppSpecificContactsDisposable: Disposable?
     
     private var experimentalUISettingsDisposable: Disposable?
+    // MARK: HolyGram: blocked users, to hide their messages in groups
+    private var holyGramBlockedPeersContext: BlockedPeersContext?
+    private var holyGramBlockedPeersDisposable: Disposable?
     
     public let cachedGroupCallContexts: AccountGroupCallContextCache
     
@@ -633,6 +636,20 @@ public final class AccountContextImpl: AccountContext {
             self.isFrozen = isFrozen
         })
         
+        // MARK: HolyGram: load the whole blocked list once per launch
+        if !temp {
+            let blockedPeersContext = BlockedPeersContext(account: account, subject: .blocked)
+            self.holyGramBlockedPeersContext = blockedPeersContext
+            let accountPeerIdValue = account.peerId.toInt64()
+            self.holyGramBlockedPeersDisposable = (blockedPeersContext.state
+            |> deliverOnMainQueue).start(next: { [weak blockedPeersContext] state in
+                HolyGramBlockedPeers.shared.update(accountPeerId: accountPeerIdValue, blocked: Set(state.peers.map { $0.peerId.toInt64() }))
+                if state.canLoadMore && !state.isLoadingMore {
+                    blockedPeersContext?.loadMore()
+                }
+            })
+        }
+        
         self.experimentalUISettingsDisposable = (sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.experimentalUISettings])
         |> deliverOnMainQueue).start(next: { [weak self] sharedData in
             guard let self else {
@@ -706,6 +723,7 @@ public final class AccountContextImpl: AccountContext {
         self.appConfigurationDisposable?.dispose()
         self.countriesConfigurationDisposable?.dispose()
         self.experimentalUISettingsDisposable?.dispose()
+        self.holyGramBlockedPeersDisposable?.dispose() // MARK: HolyGram
         self.animatedEmojiStickersDisposable?.dispose()
         self.premiumGiftStickersDisposable?.dispose()
         self.tonGiftStickersDisposable?.dispose()
