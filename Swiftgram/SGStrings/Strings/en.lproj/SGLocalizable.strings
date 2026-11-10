@@ -330,3 +330,4 @@
 "Settings.HGPrivacy.HiddenChats" = "Hidden Chats";
 "Settings.MessageHistory.Browse" = "Deleted Messages";
 "Settings.MessageHistory.Bookmarks" = "Bookmarks";
+"Settings.MessageHistory.Drafts" = "Drafts";

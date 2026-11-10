@@ -325,3 +325,4 @@
 "Settings.HGPrivacy.HiddenChats" = "Скрытые чаты";
 "Settings.MessageHistory.Browse" = "Удалённые сообщения";
 "Settings.MessageHistory.Bookmarks" = "Закладки";
+"Settings.MessageHistory.Drafts" = "Черновики";
