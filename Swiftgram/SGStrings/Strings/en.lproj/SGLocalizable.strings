@@ -328,3 +328,4 @@
 "Settings.Folders.HideBadges" = "Hide Unread Counters on Folders";
 "Settings.HGPrivacy.HideSimilarChannels" = "Hide Similar Channels";
 "Settings.HGPrivacy.HiddenChats" = "Hidden Chats";
+"Settings.MessageHistory.Browse" = "Deleted Messages";

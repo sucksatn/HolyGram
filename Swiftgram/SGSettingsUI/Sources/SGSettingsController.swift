@@ -152,6 +152,7 @@ private enum SGSliderSetting: String {
 private enum SGDisclosureLink: String {
     case holyGramProContact // MARK: HolyGram
     case holyGramHiddenChats // MARK: HolyGram
+    case holyGramDeletedMessages // MARK: HolyGram
     case contentSettings
     case languageSettings
 }
@@ -260,6 +261,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     } else {
         id.increment(1)
     }
+    entries.append(.disclosure(id: id.count, section: .messageHistory, link: .holyGramDeletedMessages, text: i18n("Settings.MessageHistory.Browse", lang) + lock))
     entries.append(.notice(id: id.count, section: .messageHistory, text: i18n("Settings.MessageHistory.Notice", lang)))
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
@@ -843,6 +845,11 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .holyGramDeletedMessages:
+                guard SGSimpleSettings.shared.hgPro else {
+                    return
+                }
+                pushControllerImpl?(holyGramDeletedMessagesController(context: context))
             case .holyGramHiddenChats:
                 guard SGSimpleSettings.shared.hgPro else {
                     return

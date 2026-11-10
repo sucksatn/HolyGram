@@ -47,6 +47,7 @@ func holyGramKeepDeletedMessages(transaction: Transaction, ids: [MessageId]) -> 
             attributes.append(HolyGramDeletedMessageAttribute(date: now))
             return .update(holyGramStoreMessage(current, attributes: attributes))
         })
+        HolyGramDeletedIndex.add(peerId: id.peerId.toInt64(), namespace: id.namespace, id: id.id, deletedAt: now)
     }
     return remaining
 }
