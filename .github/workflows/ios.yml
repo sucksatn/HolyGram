@@ -19,11 +19,11 @@ jobs:
     steps:
       - name: Check Telegram API keys
         env:
-          API_ID: ${{ secrets.TELEGRAM_API_ID }}
-          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
         run: |
           if [ -z "$API_ID" ] || [ -z "$API_HASH" ]; then
-            echo "::error::Add TELEGRAM_API_ID and TELEGRAM_API_HASH in Settings > Secrets and variables > Actions (get them at https://my.telegram.org/apps)"
+            echo "::error::Add API_ID and API_HASH in Settings > Secrets and variables > Actions (get them at https://my.telegram.org/apps)"
             exit 1
           fi
 
@@ -59,8 +59,8 @@ jobs:
 
       - name: Write build configuration
         env:
-          API_ID: ${{ secrets.TELEGRAM_API_ID }}
-          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
         run: |
           cd /Users/Shared/telegram-ios
           # bundle_id and team_id must match the fake signing profiles in

@@ -7,7 +7,7 @@
 Сборка идёт в GitHub Actions (`.github/workflows/ios.yml`) на macOS 27 + Xcode 27.1.
 
 1. Получите `api_id` и `api_hash` на https://my.telegram.org/apps
-2. Добавьте их в **Settings → Secrets and variables → Actions** как `TELEGRAM_API_ID` и `TELEGRAM_API_HASH`.
+2. Добавьте их в **Settings → Secrets and variables → Actions** как `API_ID` и `API_HASH`.
 3. **Actions → HolyGram iOS → Run workflow.**
 4. Готовый неподписанный `.ipa` появится в **Releases** (и в артефактах запуска).
 
