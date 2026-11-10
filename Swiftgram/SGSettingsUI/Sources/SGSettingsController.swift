@@ -151,6 +151,7 @@ private enum SGSliderSetting: String {
 
 private enum SGDisclosureLink: String {
     case holyGramProContact // MARK: HolyGram
+    case holyGramHiddenChats // MARK: HolyGram
     case contentSettings
     case languageSettings
 }
@@ -263,6 +264,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
+    entries.append(.disclosure(id: id.count, section: .holyGramPrivacy, link: .holyGramHiddenChats, text: i18n("Settings.HGPrivacy.HiddenChats", lang) + (hasPro ? (SGSimpleSettings.shared.hiddenChats.isEmpty ? "" : " (\(SGSimpleSettings.shared.hiddenChats.count))") : lock)))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: SGSimpleSettings.shared.hideSimilarChannels, text: i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
@@ -841,6 +843,17 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             return
         }
         switch (link) {
+            case .holyGramHiddenChats:
+                guard SGSimpleSettings.shared.hgPro else {
+                    return
+                }
+                let ru = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode.hasPrefix("ru")
+                HolyGramChatLocks.authenticate(reason: ru ? "Показать скрытые чаты" : "Show hidden chats", completion: { [weak context] success in
+                    guard success, let context else {
+                        return
+                    }
+                    pushControllerImpl?(holyGramHiddenChatsController(context: context))
+                })
             case .holyGramProContact:
                 context.sharedContext.applicationBindings.openUrl(HolyGramPro.shared.botRequestUrl)
             case .languageSettings:

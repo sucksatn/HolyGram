@@ -322,3 +322,4 @@
 "Settings.HGPrivacy.HideBlocked" = "Скрывать заблокированных в группах";
 "Settings.Folders.HideBadges" = "Скрыть счётчики на папках";
 "Settings.HGPrivacy.HideSimilarChannels" = "Скрыть «Похожие каналы»";
+"Settings.HGPrivacy.HiddenChats" = "Скрытые чаты";

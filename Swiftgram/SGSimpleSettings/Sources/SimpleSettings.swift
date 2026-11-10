@@ -132,6 +132,8 @@ public class SGSimpleSettings {
         case hideBlockedUsersMessages
         case hideFolderBadges
         case hideSimilarChannels
+        case hiddenChats
+        case lockedChats
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -314,6 +316,8 @@ public class SGSimpleSettings {
         Keys.hideBlockedUsersMessages.rawValue: false,
         Keys.hideFolderBadges.rawValue: false,
         Keys.hideSimilarChannels.rawValue: false,
+        Keys.hiddenChats.rawValue: [String](),
+        Keys.lockedChats.rawValue: [String](),
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -507,6 +511,14 @@ public class SGSimpleSettings {
     /// Hide the "Similar channels" block and profile tab.
     @UserDefault(key: Keys.hideSimilarChannels.rawValue)
     public var hideSimilarChannels: Bool
+
+    /// Chats (peer ids) left out of the chat list; listed in HolyGram settings behind Face ID.
+    @UserDefault(key: Keys.hiddenChats.rawValue)
+    public var hiddenChats: [String]
+
+    /// Chats (peer ids) that need Face ID to open.
+    @UserDefault(key: Keys.lockedChats.rawValue)
+    public var lockedChats: [String]
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool

@@ -124,6 +124,15 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         return self.chatListDisplayNode.navigationBarView.view as? ChatListNavigationBar.View
     }
 
+    // MARK: HolyGram: take a chat out of the list right away (it was just hidden)
+    func holyGramRemoveFromList(peerId: EnginePeer.Id) {
+        self.chatListDisplayNode.effectiveContainerNode.updateState(onlyCurrent: false, { state in
+            var state = state
+            state.pendingRemovalItemIds.insert(ChatListNodeState.ItemId(peerId: peerId, threadId: nil))
+            return state
+        })
+    }
+    
     private var chatListDisplayNode: ChatListControllerNode {
         return super.displayNode as! ChatListControllerNode
     }
@@ -1438,6 +1447,20 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         }
         
         self.chatListDisplayNode.mainContainerNode.peerSelected = { [weak self] peer, threadId, animated, activateInput, promoInfo in
+            // MARK: HolyGram: chats locked with Face ID
+            let peerIdValue = peer.id.toInt64()
+            if SGSimpleSettings.shared.isLockedChat(peerIdValue) && !HolyGramChatLocks.shared.isUnlocked(peerIdValue) {
+                let ru = self?.presentationData.strings.baseLanguageCode.hasPrefix("ru") ?? true
+                HolyGramChatLocks.authenticate(reason: ru ? "Открыть закрытый чат" : "Open the locked chat", completion: { [weak self] success in
+                    guard success, let self else {
+                        return
+                    }
+                    HolyGramChatLocks.shared.markUnlocked(peerIdValue)
+                    self.chatListDisplayNode.mainContainerNode.peerSelected?(peer, threadId, animated, activateInput, promoInfo)
+                })
+                return
+            }
+            //
             Task { @MainActor [weak self] in
                 guard let self else {
                     return
