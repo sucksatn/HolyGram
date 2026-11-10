@@ -131,6 +131,7 @@ public class SGSimpleSettings {
         case confirmStickerSend
         case hideBlockedUsersMessages
         case hideFolderBadges
+        case hideSimilarChannels
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -312,6 +313,7 @@ public class SGSimpleSettings {
         Keys.confirmStickerSend.rawValue: false,
         Keys.hideBlockedUsersMessages.rawValue: false,
         Keys.hideFolderBadges.rawValue: false,
+        Keys.hideSimilarChannels.rawValue: false,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -501,6 +503,10 @@ public class SGSimpleSettings {
     /// Hide unread counters on chat folder tabs.
     @UserDefault(key: Keys.hideFolderBadges.rawValue)
     public var hideFolderBadges: Bool
+
+    /// Hide the "Similar channels" block and profile tab.
+    @UserDefault(key: Keys.hideSimilarChannels.rawValue)
+    public var hideSimilarChannels: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool

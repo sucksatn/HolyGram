@@ -67,6 +67,7 @@ private enum SGBoolSetting: String {
     case confirmVoiceSend
     case hideBlockedUsersMessages
     case hideFolderBadges
+    case hideSimilarChannels
     case hidePhoneInSettings
     case showTabNames
     case showContactsTab
@@ -263,6 +264,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: SGSimpleSettings.shared.hideSponsoredMessages && hasPro, text: i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideBlockedUsersMessages, value: SGSimpleSettings.shared.hideBlockedUsersMessages && hasPro, text: i18n("Settings.HGPrivacy.HideBlocked", lang) + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: SGSimpleSettings.shared.hideSimilarChannels, text: i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: SGSimpleSettings.shared.hidePaidFeatureRows, text: i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: SGSimpleSettings.shared.streamerMode && hasPro, text: i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: SGSimpleSettings.shared.hideInAppSwitcher && hasPro, text: i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
@@ -544,6 +546,8 @@ public func sgSettingsController(context: AccountContext/*, focusOnItemTag: Int?
             SGSimpleSettings.shared.hideBlockedUsersMessages = value
         case .hideFolderBadges:
             SGSimpleSettings.shared.hideFolderBadges = value
+        case .hideSimilarChannels:
+            SGSimpleSettings.shared.hideSimilarChannels = value
             askForRestart?()
         case .showProfileId:
             SGSimpleSettings.shared.showProfileId = value
