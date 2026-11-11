@@ -139,6 +139,9 @@ public class SGSimpleSettings {
         case alwaysSilent
         case outgoingSignature
         case menuScheduleRepeat
+        case hidePrivateNotifications
+        case showNoteOnOpen
+        case muteNewChannels
         case menuSaveFile
         case menuQrCode
         case menuFixLayout
@@ -358,6 +361,9 @@ public class SGSimpleSettings {
         Keys.alwaysSilent.rawValue: false,
         Keys.outgoingSignature.rawValue: "",
         Keys.menuScheduleRepeat.rawValue: true,
+        Keys.hidePrivateNotifications.rawValue: true,
+        Keys.showNoteOnOpen.rawValue: true,
+        Keys.muteNewChannels.rawValue: false,
         Keys.menuSaveFile.rawValue: true,
         Keys.menuQrCode.rawValue: true,
         Keys.menuFixLayout.rawValue: true,
@@ -609,6 +615,18 @@ public class SGSimpleSettings {
     /// Message menu: send this text again later (scheduled).
     @UserDefault(key: Keys.menuScheduleRepeat.rawValue)
     public var menuScheduleRepeat: Bool
+
+    /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
+    @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
+    public var hidePrivateNotifications: Bool
+
+    /// Opening a chat with a HolyGram note shows the note for a moment.
+    @UserDefault(key: Keys.showNoteOnOpen.rawValue)
+    public var showNoteOnOpen: Bool
+
+    /// Channels you join start muted.
+    @UserDefault(key: Keys.muteNewChannels.rawValue)
+    public var muteNewChannels: Bool
 
     /// Message menu: save the original file.
     @UserDefault(key: Keys.menuSaveFile.rawValue)

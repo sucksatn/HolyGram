@@ -4,6 +4,7 @@ import SGAppGroupIdentifier
 
 public enum HolyGramShared {
     private static let keepDeletedKey = "holygram_keep_deleted"
+    private static let privateChatsKey = "holygram_private_chats"
 
     /// The notification service and other extensions run in their own process with their own
     /// UserDefaults, so they read what the app published to the shared app group instead.
@@ -21,10 +22,27 @@ public enum HolyGramShared {
         guard !self.isAppExtension else {
             return
         }
-        let value = SGSimpleSettings.shared.hgSaveDeletedMessages
+        let settings = SGSimpleSettings.shared
+        let value = settings.hgSaveDeletedMessages
         if self.groupDefaults?.bool(forKey: self.keepDeletedKey) != value {
             self.groupDefaults?.set(value, forKey: self.keepDeletedKey)
         }
+        // Hidden and Face ID-locked chats: notifications from them don't show who wrote or what.
+        var privateChats: [String] = []
+        if settings.hgPro && settings.hidePrivateNotifications {
+            privateChats = Array(Set(settings.hiddenChats + settings.lockedChats)).sorted()
+        }
+        if (self.groupDefaults?.stringArray(forKey: self.privateChatsKey) ?? []) != privateChats {
+            self.groupDefaults?.set(privateChats, forKey: self.privateChatsKey)
+        }
+    }
+
+    /// Read by the notification service.
+    public static func isPrivateNotificationChat(_ peerIdValue: Int64) -> Bool {
+        guard let list = self.groupDefaults?.stringArray(forKey: self.privateChatsKey), !list.isEmpty else {
+            return false
+        }
+        return list.contains(String(peerIdValue))
     }
 
     /// The app group container when the build has one (shared with extensions), else Application Support.

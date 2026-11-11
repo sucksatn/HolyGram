@@ -21,6 +21,7 @@ import SavedMessagesScreen
 import WallpaperGalleryScreen
 import ChatMessageNotificationItem
 import FaceScanScreen
+import UndoUI // MARK: HolyGram
 
 public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParams) {
     // MARK: HolyGram: chats locked with Face ID, whichever way they are opened
@@ -34,6 +35,15 @@ public func navigateToChatControllerImpl(_ params: NavigateToChatControllerParam
             }
         })
         return
+    }
+    // MARK: HolyGram: the chat's private note, shown for a moment when it opens
+    if SGSimpleSettings.shared.showNoteOnOpen && SGSimpleSettings.shared.hgPro, let note = HolyGramNotes.note(peerId: holyGramPeerIdValue), !note.isEmpty {
+        let context = params.context
+        Queue.mainQueue().after(0.6) {
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+            context.sharedContext.presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: ru ? "📒 Заметка" : "📒 Note", text: String(note.prefix(300)), timeout: 5.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+        }
     }
     //
     if case let .peer(peer) = params.chatLocation {

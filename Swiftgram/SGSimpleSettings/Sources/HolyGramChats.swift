@@ -13,6 +13,7 @@ public extension SGSimpleSettings {
             list.append(String(peerIdValue))
         }
         self.hiddenChats = list
+        HolyGramShared.publishFromApp()
     }
 
     func isSilentChat(_ peerIdValue: Int64) -> Bool {
@@ -40,6 +41,7 @@ public extension SGSimpleSettings {
             list.append(String(peerIdValue))
         }
         self.lockedChats = list
+        HolyGramShared.publishFromApp()
     }
 }
 

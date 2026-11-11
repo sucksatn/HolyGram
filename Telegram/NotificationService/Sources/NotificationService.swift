@@ -1,4 +1,5 @@
 import SGAppGroupIdentifier // MARK: Swiftgram
+import SGSimpleSettings // MARK: HolyGram
 import Foundation
 import PasscodeCore
 import UserNotifications
@@ -564,6 +565,7 @@ private struct NotificationContent: CustomStringConvertible {
     var senderImage: INImage?
     
     var isLockedMessage: String?
+    var holyGramPeerId: Int64? // MARK: HolyGram
     
     init(sgStatus: SGStatus, isLockedMessage: String?, isEmpty: Bool = false, isMentionOrReply: Bool = false, chatId: Int64? = nil) { // MARK: Swiftgram
         self.sgStatus = sgStatus // MARK: Swiftgram
@@ -725,6 +727,15 @@ private struct NotificationContent: CustomStringConvertible {
             if let isLockedMessage = self.isLockedMessage {
                 content.body = isLockedMessage
             }
+        }
+        // MARK: HolyGram: hidden and Face ID-locked chats don't show who wrote or what
+        if let holyGramPeerId = self.holyGramPeerId, HolyGramShared.isPrivateNotificationChat(holyGramPeerId) {
+            let ru = (Locale.preferredLanguages.first ?? "").hasPrefix("ru") || (Locale.preferredLanguages.first ?? "").hasPrefix("uk")
+            content.title = "HolyGram"
+            content.subtitle = ""
+            content.body = ru ? "Новое сообщение" : "New message"
+            content.setValue(nil, forKey: "attributedBody")
+            content.attachments = []
         }
         
         if let threadId = self.threadId {
@@ -1297,6 +1308,7 @@ private final class NotificationServiceHandler {
                         if let aps = payloadJson["aps"] as? [String: Any], var peerId = peerId {
                             var content: NotificationContent = NotificationContent(sgStatus: sgStatus, isLockedMessage: isLockedMessage, isMentionOrReply: isMentionOrReply, chatId: chatId) // MARK: Swiftgram
                             content.recipientAccountName = recipientAccountName
+                            content.holyGramPeerId = peerId.toInt64() // MARK: HolyGram
                             if let alert = aps["alert"] as? [String: Any] {
                                 if let topicTitleValue = payloadJson["topic_title"] as? String {
                                     topicTitle = topicTitleValue
