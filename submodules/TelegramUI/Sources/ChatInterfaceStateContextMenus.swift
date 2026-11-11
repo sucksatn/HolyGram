@@ -994,7 +994,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
         var sgActions: [ContextMenuItem] = []
-        var hgActions: [ContextMenuItem] = [] // MARK: HolyGram
+        var hgGroups: [String: [ContextMenuItem]] = [:] // MARK: HolyGram: items by section
 
         var isPinnedMessages = false
         if case .pinnedMessages = chatPresentationInterfaceState.subject {
@@ -1591,34 +1591,34 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         //
         // MARK: HolyGram
         if SGSimpleSettings.shared.hgShowRepeat && !message.isCopyProtected() && message.id.namespace == Namespaces.Message.Cloud && canSendMessagesToChat(chatPresentationInterfaceState) {
-            hgActions.append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgGroups["send", default: []].append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.hgPro && message.id.namespace == Namespaces.Message.Cloud {
-            if SGSimpleSettings.shared.menuBookmark { hgActions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuRemind { hgActions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuChatStats { hgActions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuSaveAllMedia { hgActions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuTemplates && canSendMessagesToChat(chatPresentationInterfaceState) { hgActions.append(sgMakeContextMenuAction(.templates(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuExportChat && !message.isCopyProtected() { hgActions.append(sgMakeContextMenuAction(.exportChat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuMessageInfo { hgActions.append(sgMakeContextMenuAction(.messageInfo(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuLinks && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.links(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuWebSearch && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.webSearch(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuScheduleRepeat && !message.text.isEmpty && !message.media.contains(where: { !($0 is TelegramMediaWebpage) }) && !message.isCopyProtected() && canSendMessagesToChat(chatPresentationInterfaceState) { hgActions.append(sgMakeContextMenuAction(.scheduleRepeat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuSaveFile && !message.isCopyProtected() && message.media.contains(where: { $0 is TelegramMediaFile || $0 is TelegramMediaImage }) { hgActions.append(sgMakeContextMenuAction(.saveFile(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuQrCode && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.qrCode(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuFixLayout && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.fixLayout(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuAddToNote && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.addToNote(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuCopyPlain && !message.text.isEmpty && !message.isCopyProtected() { hgActions.append(sgMakeContextMenuAction(.copyPlain(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuSpeak && !message.text.isEmpty { hgActions.append(sgMakeContextMenuAction(.speak, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuCopyWithAuthor && !message.text.isEmpty && !message.isCopyProtected() { hgActions.append(sgMakeContextMenuAction(.copyWithAuthor(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuWriteAuthor, let author = message.author as? TelegramUser, author.id != context.account.peerId, author.id != message.id.peerId, author.botInfo == nil { hgActions.append(sgMakeContextMenuAction(.writeToAuthor(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuMessageCard && !message.text.isEmpty && !message.isCopyProtected() { hgActions.append(sgMakeContextMenuAction(.messageCard(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuBookmark { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuRemind { hgGroups["send", default: []].append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuChatStats { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuSaveAllMedia { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuTemplates && canSendMessagesToChat(chatPresentationInterfaceState) { hgGroups["send", default: []].append(sgMakeContextMenuAction(.templates(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuExportChat && !message.isCopyProtected() { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.exportChat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuMessageInfo { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.messageInfo(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuLinks && !message.text.isEmpty { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.links(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuWebSearch && !message.text.isEmpty { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.webSearch(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuScheduleRepeat && !message.text.isEmpty && !message.media.contains(where: { !($0 is TelegramMediaWebpage) }) && !message.isCopyProtected() && canSendMessagesToChat(chatPresentationInterfaceState) { hgGroups["send", default: []].append(sgMakeContextMenuAction(.scheduleRepeat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuSaveFile && !message.isCopyProtected() && message.media.contains(where: { $0 is TelegramMediaFile || $0 is TelegramMediaImage }) { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.saveFile(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuQrCode && !message.text.isEmpty { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.qrCode(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuFixLayout && !message.text.isEmpty { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.fixLayout(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuAddToNote && !message.text.isEmpty { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.addToNote(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuCopyPlain && !message.text.isEmpty && !message.isCopyProtected() { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.copyPlain(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuSpeak && !message.text.isEmpty { hgGroups["tools", default: []].append(sgMakeContextMenuAction(.speak, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuCopyWithAuthor && !message.text.isEmpty && !message.isCopyProtected() { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.copyWithAuthor(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuWriteAuthor, let author = message.author as? TelegramUser, author.id != context.account.peerId, author.id != message.id.peerId, author.botInfo == nil { hgGroups["send", default: []].append(sgMakeContextMenuAction(.writeToAuthor(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuMessageCard && !message.text.isEmpty && !message.isCopyProtected() { hgGroups["copy", default: []].append(sgMakeContextMenuAction(.messageCard(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
         }
         if SGSimpleSettings.shared.menuFirstMessage && SGSimpleSettings.shared.hgPro, case .peer = chatPresentationInterfaceState.chatLocation, message.id.namespace == Namespaces.Message.Cloud {
-            hgActions.append(sgMakeContextMenuAction(.firstMessage(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgGroups["tools", default: []].append(sgMakeContextMenuAction(.firstMessage(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.menuEditHistory && !message.holyGramEditHistory.isEmpty {
-            hgActions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgGroups["tools", default: []].append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         //
         
@@ -2313,7 +2313,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             canViewStats = canViewReadStats(message: message, participantCount: infoSummaryData.participantCount, isMessageRead: isMessageRead, isPremium: isPremium, appConfig: appConfig)
         }
 
-        sgInsertContextMenu(actions: &actions, sgActions: &sgActions, hgActions: hgActions, index: sgActionsIndex, chatPresentationInterfaceState: chatPresentationInterfaceState) // MARK: Swiftgram
+        sgInsertContextMenu(actions: &actions, sgActions: &sgActions, hgActions: sgHolyGramSections(hgGroups, chatPresentationInterfaceState: chatPresentationInterfaceState), index: sgActionsIndex, chatPresentationInterfaceState: chatPresentationInterfaceState) // MARK: Swiftgram
         
         var reactionCount = 0
         for reaction in mergedMessageReactionsAndPeers(accountPeerId: context.account.peerId, accountPeer: nil, message: message).reactions {

@@ -412,6 +412,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgLockAccount"), text: "🔐  " + (settings.isLockedAccount(accountIdValue) ? (ru ? "Этот аккаунт закрыт Face ID ✓" : "This Account Is Locked with Face ID ✓") : (ru ? "Закрыть этот аккаунт Face ID" : "Lock This Account with Face ID")) + lock, kind: .generic))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePrivateNotifications, value: settings.hidePrivateNotifications && hasPro, text: "🔒  " + (ru ? "Скрывать уведомления из скрытых и закрытых чатов" : "Hide Notifications from Hidden & Locked Chats") + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .muteNewChannels, value: settings.muteNewChannels && hasPro, text: "📢  " + (ru ? "Новые каналы без звука" : "Mute Channels You Join") + lock, enabled: hasPro))
+    let undoDelay = settings.undoSendDelay
+    entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgUndoSend"), text: "↩️  " + (ru ? "Отмена отправки" : "Undo Send") + ": " + (undoDelay > 0 ? (ru ? "\(undoDelay) сек" : "\(undoDelay) s") : (ru ? "выкл" : "off")) + lock, kind: .generic))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .alwaysSilent, value: settings.alwaysSilent && hasPro, text: "🔕  " + (ru ? "Всегда отправлять без звука" : "Always Send Silently") + lock, enabled: hasPro))
     let signature = settings.outgoingSignature
     entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgEditSignature"), text: "✍️  " + (ru ? "Подпись к сообщениям" : "Message Signature") + lock + (signature.isEmpty ? "" : ": " + String(signature.prefix(30))), kind: .generic))
@@ -1223,6 +1225,39 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 simplePromise.set(true)
             }))
             hgTopViewController()?.present(alert, animated: true)
+            return
+        }
+        // MARK: HolyGram: how long a text message waits with an Undo button
+        if actionType == AnyHashable("hgUndoSend") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            let sheet = UIAlertController(title: ru ? "Отмена отправки" : "Undo Send", message: ru ? "Текстовое сообщение отправится не сразу, а через выбранное время. До этого его можно отменить." : "A text message is sent after the chosen delay; until then you can undo it.", preferredStyle: .actionSheet)
+            let values: [Int32] = [0, 3, 5, 10]
+            for value in values {
+                let ruTitle: String
+                switch value {
+                case 0: ruTitle = "Выключено"
+                case 3: ruTitle = "3 секунды"
+                default: ruTitle = "\(value) секунд"
+                }
+                let title = ru ? ruTitle : (value == 0 ? "Off" : "\(value) seconds")
+                sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
+                    SGSimpleSettings.shared.undoSendDelay = value
+                    simplePromise.set(true)
+                }))
+            }
+            sheet.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+            if let presenter = hgTopViewController() {
+                if let popover = sheet.popoverPresentationController {
+                    popover.sourceView = presenter.view
+                    popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+                    popover.permittedArrowDirections = []
+                }
+                presenter.present(sheet, animated: true)
+            }
             return
         }
         // MARK: HolyGram: Face ID when switching to this account
