@@ -142,6 +142,7 @@ public class SGSimpleSettings {
         case hidePrivateNotifications
         case chatListMarkers
         case ghostShortcut
+        case lockedAccounts
         case profileNote
         case showNoteOnOpen
         case muteNewChannels
@@ -367,6 +368,7 @@ public class SGSimpleSettings {
         Keys.hidePrivateNotifications.rawValue: true,
         Keys.chatListMarkers.rawValue: true,
         Keys.ghostShortcut.rawValue: true,
+        Keys.lockedAccounts.rawValue: [String](),
         Keys.profileNote.rawValue: true,
         Keys.showNoteOnOpen.rawValue: true,
         Keys.muteNewChannels.rawValue: false,
@@ -625,6 +627,10 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// Accounts that ask for Face ID when you switch to them (account record ids).
+    @UserDefault(key: Keys.lockedAccounts.rawValue)
+    public var lockedAccounts: [String]
 
     /// Ghost mode in the app icon's long-press menu.
     @UserDefault(key: Keys.ghostShortcut.rawValue)

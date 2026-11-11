@@ -31,6 +31,18 @@ public extension SGSimpleSettings {
         self.silentChats = list
     }
 
+    func isLockedAccount(_ accountIdValue: Int64) -> Bool {
+        return self.hgPro && self.lockedAccounts.contains(String(accountIdValue))
+    }
+
+    func setLockedAccount(_ accountIdValue: Int64, _ locked: Bool) {
+        var list = self.lockedAccounts.filter { $0 != String(accountIdValue) }
+        if locked {
+            list.append(String(accountIdValue))
+        }
+        self.lockedAccounts = list
+    }
+
     func isLockedChat(_ peerIdValue: Int64) -> Bool {
         return self.hgPro && self.lockedChats.contains(String(peerIdValue))
     }
@@ -50,6 +62,15 @@ public final class HolyGramChatLocks {
     public static let shared = HolyGramChatLocks()
 
     private var unlocked: Set<Int64> = []
+    private var unlockedAccounts: Set<Int64> = []
+
+    public func isAccountUnlocked(_ accountIdValue: Int64) -> Bool {
+        return self.unlockedAccounts.contains(accountIdValue)
+    }
+
+    public func markAccountUnlocked(_ accountIdValue: Int64) {
+        self.unlockedAccounts.insert(accountIdValue)
+    }
 
     public func isUnlocked(_ peerIdValue: Int64) -> Bool {
         return self.unlocked.contains(peerIdValue)
@@ -62,6 +83,7 @@ public final class HolyGramChatLocks {
     /// Called when the app resigns active.
     public func lockAll() {
         self.unlocked.removeAll()
+        self.unlockedAccounts.removeAll()
     }
 
     /// Face ID / Touch ID, falling back to the device passcode. Calls back on the main queue.

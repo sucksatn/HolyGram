@@ -304,7 +304,7 @@ private func holyGramProStatusText(lang: String) -> String {
     return i18n("Settings.HGPro.Inactive", lang) + "\n" + note
 }
 
-private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState, page: HolyGramSettingsPage) -> [SGControllerEntry] {
+private func SGControllerEntries(presentationData: PresentationData, callListSettings: CallListSettings, experimentalUISettings: ExperimentalUISettings, appConfiguration: AppConfiguration, nameColors: PeerNameColors, state: SGSettingsControllerState, page: HolyGramSettingsPage, accountIdValue: Int64) -> [SGControllerEntry] {
     
     let lang = presentationData.strings.baseLanguageCode
     let strings = presentationData.strings
@@ -409,6 +409,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: settings.hideSimilarChannels, text: "📺  " + i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: settings.hidePaidFeatureRows, text: "⭐️  " + i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideFolderBadges, value: settings.hideFolderBadges, text: "🔢  " + i18n("Settings.Folders.HideBadges", lang), enabled: true))
+    entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgLockAccount"), text: "🔐  " + (settings.isLockedAccount(accountIdValue) ? (ru ? "Этот аккаунт закрыт Face ID ✓" : "This Account Is Locked with Face ID ✓") : (ru ? "Закрыть этот аккаунт Face ID" : "Lock This Account with Face ID")) + lock, kind: .generic))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePrivateNotifications, value: settings.hidePrivateNotifications && hasPro, text: "🔒  " + (ru ? "Скрывать уведомления из скрытых и закрытых чатов" : "Hide Notifications from Hidden & Locked Chats") + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .muteNewChannels, value: settings.muteNewChannels && hasPro, text: "📢  " + (ru ? "Новые каналы без звука" : "Mute Channels You Join") + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .alwaysSilent, value: settings.alwaysSilent && hasPro, text: "🔕  " + (ru ? "Всегда отправлять без звука" : "Always Send Silently") + lock, enabled: hasPro))
@@ -1224,6 +1225,28 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             hgTopViewController()?.present(alert, animated: true)
             return
         }
+        // MARK: HolyGram: Face ID when switching to this account
+        if actionType == AnyHashable("hgLockAccount") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            let accountIdValue = context.account.id.int64
+            let locked = SGSimpleSettings.shared.isLockedAccount(accountIdValue)
+            HolyGramChatLocks.authenticate(reason: locked ? (ru ? "Снять Face ID с аккаунта" : "Unlock the account") : (ru ? "Закрыть аккаунт Face ID" : "Lock the account"), completion: { success in
+                guard success else {
+                    return
+                }
+                SGSimpleSettings.shared.setLockedAccount(accountIdValue, !locked)
+                HolyGramChatLocks.shared.markAccountUnlocked(accountIdValue)
+                simplePromise.set(true)
+                let alert = UIAlertController(title: nil, message: locked ? (ru ? "Face ID с аккаунта снят." : "The account is no longer locked.") : (ru ? "Готово. При переключении на этот аккаунт HolyGram попросит Face ID." : "Done. Switching to this account will ask for Face ID."), preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                hgTopViewController()?.present(alert, animated: true)
+            })
+            return
+        }
         // MARK: HolyGram: ghost mode that switches itself off
         if actionType == AnyHashable("hgGhostTimer") {
             let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
@@ -1578,7 +1601,7 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
         let callListSettings: CallListSettings = sharedData.entries[ApplicationSpecificSharedDataKeys.callListSettings]?.get(CallListSettings.self) ?? CallListSettings.defaultSettings
         let experimentalUISettings: ExperimentalUISettings = sharedData.entries[ApplicationSpecificSharedDataKeys.experimentalUISettings]?.get(ExperimentalUISettings.self) ?? ExperimentalUISettings.defaultSettings
         
-        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state, page: page)
+        let entries = SGControllerEntries(presentationData: presentationData, callListSettings: callListSettings, experimentalUISettings: experimentalUISettings, appConfiguration: appConfiguration, nameColors: PeerNameColors.with(availableReplyColors: availableReplyColors, availableProfileColors: availableProfileColors), state: state, page: page, accountIdValue: context.account.id.int64)
         
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(page.title(presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk"))), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         
