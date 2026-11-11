@@ -266,15 +266,29 @@ public enum HolyGramBookmarks {
 public enum HolyGramNotes {
     private static let key = "holygram_chat_notes_v1"
     private static let lock = NSLock()
+    // Read on every chat list row, so it is kept in memory.
+    private static var cache: [String: String]?
 
+    /// Must be called with `lock` held.
     private static func load() -> [String: String] {
-        return (UserDefaults.standard.dictionary(forKey: self.key) as? [String: String]) ?? [:]
+        if let cache = self.cache {
+            return cache
+        }
+        let value = (UserDefaults.standard.dictionary(forKey: self.key) as? [String: String]) ?? [:]
+        self.cache = value
+        return value
     }
 
     public static func note(peerId: Int64) -> String? {
         self.lock.lock()
         defer { self.lock.unlock() }
         return self.load()[String(peerId)]
+    }
+
+    public static var isEmpty: Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.load().isEmpty
     }
 
     /// An empty text removes the note.
@@ -284,6 +298,7 @@ public enum HolyGramNotes {
         var notes = self.load()
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         notes[String(peerId)] = trimmed.isEmpty ? nil : trimmed
+        self.cache = notes
         UserDefaults.standard.set(notes, forKey: self.key)
     }
 
