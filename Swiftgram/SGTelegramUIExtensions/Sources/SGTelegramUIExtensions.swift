@@ -38,6 +38,7 @@ func sgHandleInternalUrlRoute(context: AccountContext, parsedUrl: URL, navigatio
         } else {
             let enabled = path == "ghost" ? !SGSimpleSettings.shared.ghostMode : path == "ghost_on"
             SGSimpleSettings.shared.ghostMode = enabled
+            SGSimpleSettings.shared.ghostUntil = 0
             text = enabled ? (ru ? "Режим призрака включён" : "Ghost mode is on") : (ru ? "Режим призрака выключен" : "Ghost mode is off")
         }
         context.sharedContext.presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 2.5, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
@@ -129,6 +130,7 @@ enum SGContextMenuActionFactory {
     case firstMessage(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case messageInfo(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case speak // MARK: HolyGram
+    case scheduleRepeat(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case links(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case webSearch(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case copyWithAuthor(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
@@ -258,6 +260,16 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
             let presentationData = context.sharedContext.currentPresentationData.with { $0 }
             context.sharedContext.openExternalUrl(context: context, urlContext: .generic, url: "https://www.google.com/search?q=\(encoded)", forceExternal: false, presentationData: presentationData, navigationController: controllerInteraction.navigationController(), dismissInput: {})
+        }))
+    case let .scheduleRepeat(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Отправить ещё раз позже" : "Send Again Later", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "calendar.badge.clock"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgPresentScheduleRepeat(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
+            }
         }))
     case .speak:
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
@@ -554,6 +566,39 @@ private func hgPresentLinks(context: AccountContext, controllerInteraction: Chat
     if !links.isEmpty {
         sheet.addAction(UIAlertAction(title: ru ? "Скопировать все (\(links.count))" : "Copy All (\(links.count))", style: .default, handler: { _ in
             UIPasteboard.general.string = links.joined(separator: "\n")
+        }))
+    }
+    sheet.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_Cancel, style: .cancel))
+    if let popover = sheet.popoverPresentationController {
+        popover.sourceView = sourceView
+        popover.sourceRect = CGRect(x: sourceView.bounds.midX, y: sourceView.bounds.midY, width: 1.0, height: 1.0)
+        popover.permittedArrowDirections = []
+    }
+    presenter.present(sheet, animated: true)
+}
+
+// MARK: HolyGram: schedules the same text in this chat for later
+private func hgPresentScheduleRepeat(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage, ru: Bool) {
+    guard let presenter = hgPresenter(controllerInteraction), let sourceView = controllerInteraction.navigationController()?.view else {
+        return
+    }
+    let text = message.text
+    let entities = message.attributes.compactMap { $0 as? TextEntitiesMessageAttribute }.first
+    let options: [(String, Int32)] = ru
+        ? [("Через 1 час", 3600), ("Через 3 часа", 3 * 3600), ("Завтра в это же время", 86400), ("Через неделю", 7 * 86400)]
+        : [("In 1 hour", 3600), ("In 3 hours", 3 * 3600), ("Tomorrow, same time", 86400), ("In a week", 7 * 86400)]
+    let sheet = UIAlertController(title: ru ? "Отправить ещё раз" : "Send Again", message: ru ? "Сообщение будет запланировано в этом чате. Его видно в «Отложенных»." : "The message is scheduled in this chat. You'll find it in Scheduled Messages.", preferredStyle: .actionSheet)
+    for (title, delay) in options {
+        sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
+            var attributes: [MessageAttribute] = [OutgoingScheduleInfoMessageAttribute(scheduleTime: Int32(Date().timeIntervalSince1970) + delay, repeatPeriod: nil)]
+            if let entities {
+                attributes.append(entities)
+            }
+            let _ = enqueueMessages(account: context.account, peerId: message.id.peerId, messages: [
+                .message(text: text, attributes: attributes, inlineStickers: [:], mediaReference: nil, threadId: chatPresentationInterfaceState.chatLocation.threadId, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
+            ]).startStandalone()
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Запланировано: \(title.lowercased())" : "Scheduled: \(title.lowercased())", timeout: 2.5, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
         }))
     }
     sheet.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_Cancel, style: .cancel))

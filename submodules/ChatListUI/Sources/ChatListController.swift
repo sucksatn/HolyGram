@@ -7531,7 +7531,7 @@ private final class ChatListLocationContext {
                 //
                 
                 // MARK: HolyGram: ghost mode quick toggle
-                let ghostModeOn = SGSimpleSettings.shared.ghostMode && SGSimpleSettings.shared.hgPro
+                let ghostModeOn = SGSimpleSettings.shared.ghostMode && !SGSimpleSettings.shared.ghostTimerExpired && SGSimpleSettings.shared.hgPro
                 if SGSimpleSettings.shared.hgGhostAvailable && SGSimpleSettings.shared.hgShowGhostButton, let ghostImage = UIImage(systemName: ghostModeOn ? "eye.slash.fill" : "eye")?.withRenderingMode(.alwaysTemplate) {
                     self.ghostButton = NavigationBarComponent.Button(id: "holygram_ghost",
                         content: .image(ghostImage),
@@ -7546,8 +7546,9 @@ private final class ChatListLocationContext {
                                 parentController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: isRussian ? "Режим призрака доступен в HolyGram Pro" : "Ghost mode needs HolyGram Pro", timeout: 3.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .window(.root))
                                 return
                             }
-                            let enabled = !SGSimpleSettings.shared.ghostMode
+                            let enabled = !(SGSimpleSettings.shared.ghostMode && !SGSimpleSettings.shared.ghostTimerExpired)
                             SGSimpleSettings.shared.ghostMode = enabled
+                            SGSimpleSettings.shared.ghostUntil = 0
                             let text: String
                             if enabled {
                                 text = isRussian ? "Режим призрака включён" : "Ghost mode is on"

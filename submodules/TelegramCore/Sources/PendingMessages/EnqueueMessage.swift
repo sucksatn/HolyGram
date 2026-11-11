@@ -873,6 +873,26 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
             return attributes + [NotificationInfoMessageAttribute(flags: .muted)]
         })
     } : messages
+    // MARK: HolyGram: signature added to outgoing text (not in secret chats or to bots, not to commands)
+    let signature = SGSimpleSettings.shared.hgOutgoingSignature
+    let messages: [(Bool, EnqueueMessage)] = {
+        if signature.isEmpty || peerId.namespace == Namespaces.Peer.SecretChat {
+            return messages
+        }
+        if let user = transaction.getPeer(peerId) as? TelegramUser, user.botInfo != nil {
+            return messages
+        }
+        return messages.map { transformed, message in
+            guard case let .message(text, attributes, inlineStickers, mediaReference, threadId, replyToMessageId, replyToStoryId, localGroupingKey, correlationId, bubbleUpEmojiOrStickersets) = message else {
+                return (transformed, message)
+            }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty || trimmed.hasPrefix("/") || attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }) && text.hasSuffix(signature) {
+                return (transformed, message)
+            }
+            return (transformed, .message(text: text + "\n\n" + signature, attributes: attributes, inlineStickers: inlineStickers, mediaReference: mediaReference, threadId: threadId, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, localGroupingKey: localGroupingKey, correlationId: correlationId, bubbleUpEmojiOrStickersets: bubbleUpEmojiOrStickersets))
+        }
+    }()
     /**
      * If it is a support account, mark messages as read here as they are
      * not marked as read when chat is opened.

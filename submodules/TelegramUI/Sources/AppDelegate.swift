@@ -2291,6 +2291,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     func handleDidBecomeActive() {
         HolyGramShared.publishFromApp() // MARK: HolyGram
         HolyGramDeletedIndex.reloadFromDisk() // MARK: HolyGram: messages kept by the notification service
+        SGSimpleSettings.shared.expireGhostTimerIfNeeded() // MARK: HolyGram
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.holyGramApplyStreamerMode() // MARK: HolyGram
         HolyGramPro.shared.refresh() // MARK: HolyGram
