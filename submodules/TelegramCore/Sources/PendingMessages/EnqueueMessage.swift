@@ -865,7 +865,7 @@ public func resendMessages(account: Account, messageIds: [MessageId]) -> Signal<
 
 func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId, messages: [(Bool, EnqueueMessage)], disableAutoremove: Bool = false, transformGroupingKeysWithPeerId: Bool = false) -> [MessageId?] {
     // MARK: HolyGram: chats where everything is sent without sound
-    let messages: [(Bool, EnqueueMessage)] = SGSimpleSettings.shared.isSilentChat(peerId.toInt64()) ? messages.map { transformed, message in
+    let silentMessages: [(Bool, EnqueueMessage)] = SGSimpleSettings.shared.isSilentChat(peerId.toInt64()) ? messages.map { transformed, message in
         return (transformed, message.withUpdatedAttributes { attributes in
             if attributes.contains(where: { $0 is NotificationInfoMessageAttribute }) {
                 return attributes
@@ -877,12 +877,12 @@ func enqueueMessages(transaction: Transaction, account: Account, peerId: PeerId,
     let signature = SGSimpleSettings.shared.hgOutgoingSignature
     let messages: [(Bool, EnqueueMessage)] = {
         if signature.isEmpty || peerId.namespace == Namespaces.Peer.SecretChat {
-            return messages
+            return silentMessages
         }
         if let user = transaction.getPeer(peerId) as? TelegramUser, user.botInfo != nil {
-            return messages
+            return silentMessages
         }
-        return messages.map { transformed, message in
+        return silentMessages.map { transformed, message in
             guard case let .message(text, attributes, inlineStickers, mediaReference, threadId, replyToMessageId, replyToStoryId, localGroupingKey, correlationId, bubbleUpEmojiOrStickersets) = message else {
                 return (transformed, message)
             }

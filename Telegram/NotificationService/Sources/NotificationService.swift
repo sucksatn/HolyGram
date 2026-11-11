@@ -734,7 +734,9 @@ private struct NotificationContent: CustomStringConvertible {
             content.title = "HolyGram"
             content.subtitle = ""
             content.body = ru ? "Новое сообщение" : "New message"
-            content.setValue(nil, forKey: "attributedBody")
+            if #available(iOS 18.0, *), !self.resolvedEmojiFiles.isEmpty {
+                content.setValue(NSAttributedString(string: content.body), forKey: "attributedBody")
+            }
             content.attachments = []
         }
         
