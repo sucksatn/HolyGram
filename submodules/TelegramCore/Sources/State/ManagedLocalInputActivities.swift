@@ -144,7 +144,7 @@ private func actionFromActivity(_ activity: PeerInputActivity?) -> Api.SendMessa
 
 private func requestActivity(postbox: Postbox, network: Network, accountPeerId: PeerId, peerId: PeerId, threadId: Int64?, activity: PeerInputActivity?) -> Signal<Void, NoError> {
     // MARK: HolyGram ghost mode: don't send "typing…", "recording…" and so on.
-    if SGSimpleSettings.shared.ghostBlocksTyping {
+    if SGSimpleSettings.shared.ghostBlocksTypingInChat(peerId.toInt64()) {
         return .complete()
     }
     return postbox.transaction { transaction -> Signal<Void, NoError> in

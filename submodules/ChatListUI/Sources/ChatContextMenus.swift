@@ -367,6 +367,31 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                             }
                         }
                         
+                        // MARK: HolyGram: read one chat unseen, and send its read receipt on demand
+                        if SGSimpleSettings.shared.hgPro && SGSimpleSettings.shared.hgGhostAvailable && peerId != context.account.peerId {
+                            let ruGhost = strings.baseLanguageCode.hasPrefix("ru") || strings.baseLanguageCode.hasPrefix("uk")
+                            let peerIdValue = peerId.toInt64()
+                            if SGSimpleSettings.shared.menuGhostChat && !SGSimpleSettings.shared.ghostBlocksReadReceipts {
+                                let isGhostChat = SGSimpleSettings.shared.isGhostChat(peerIdValue)
+                                items.append(.action(ContextMenuActionItem(text: isGhostChat ? (ruGhost ? "Читать здесь обычно" : "Read Here Normally") : (ruGhost ? "Читать здесь незаметно" : "Read Here Unseen"), icon: { theme in generateTintedImage(image: UIImage(systemName: isGhostChat ? "eye" : "eye.slash"), color: theme.contextMenu.primaryColor) }, action: { _, f in
+                                    SGSimpleSettings.shared.setGhostChat(peerIdValue, !isGhostChat)
+                                    f(.default)
+                                })))
+                            }
+                            if SGSimpleSettings.shared.menuSendReadNow && SGSimpleSettings.shared.ghostBlocksReadReceiptsInChat(peerIdValue) {
+                                items.append(.action(ContextMenuActionItem(text: ruGhost ? "Отправить прочтение сейчас" : "Send Read Receipt Now", icon: { theme in generateTintedImage(image: UIImage(systemName: "checkmark.message"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    let _ = (holyGramSendReadReceipt(account: context.account, peerId: peerId)
+                                    |> deliverOnMainQueue).startStandalone(completed: {
+                                        guard let chatListController else {
+                                            return
+                                        }
+                                        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                        chatListController.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ruGhost ? "Прочтение отправлено" : "Read receipt sent", timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                    })
+                                })))
+                            }
+                        }
                         // MARK: HolyGram: per-chat exception from ghost mode's hidden read receipts
                         if SGSimpleSettings.shared.ghostBlocksReadReceipts && SGSimpleSettings.shared.menuGhostException {
                             let isException = SGSimpleSettings.shared.isGhostReadException(peerId.toInt64())

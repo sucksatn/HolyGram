@@ -6040,5 +6040,8 @@ private func holyGramChatListMarkers(peerId: EnginePeer.Id?) -> String {
     if !settings.alwaysSilent && settings.isSilentChat(value) {
         markers += "🔕"
     }
+    if settings.isGhostChat(value) {
+        markers += "👻"
+    }
     return markers
 }
