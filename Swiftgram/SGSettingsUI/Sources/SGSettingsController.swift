@@ -1232,7 +1232,9 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 return
             }
             let sheet = UIAlertController(title: ru ? "Режим призрака на время" : "Ghost Mode for a While", message: ru ? "Потом он выключится сам." : "It turns itself off afterwards.", preferredStyle: .actionSheet)
-            let options: [(String, Int32)] = ru ? [("30 минут", 1800), ("1 час", 3600), ("3 часа", 10800), ("8 часов", 28800), ("24 часа", 86400)] : [("30 minutes", 1800), ("1 hour", 3600), ("3 hours", 10800), ("8 hours", 28800), ("24 hours", 86400)]
+            let ghostDelays: [Int32] = [1800, 3600, 10800, 28800, 86400]
+            let ghostTitles: [String] = ru ? ["30 минут", "1 час", "3 часа", "8 часов", "24 часа"] : ["30 minutes", "1 hour", "3 hours", "8 hours", "24 hours"]
+            let options: [(String, Int32)] = Array(zip(ghostTitles, ghostDelays))
             for (title, seconds) in options {
                 sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
                     SGSimpleSettings.shared.ghostUntil = Int32(Date().timeIntervalSince1970) + seconds

@@ -652,9 +652,14 @@ private func hgPresentScheduleRepeat(context: AccountContext, controllerInteract
     }
     let text = message.text
     let entities = message.attributes.compactMap { $0 as? TextEntitiesMessageAttribute }.first
-    let options: [(String, Int32)] = ru
-        ? [("Через 1 час", 3600), ("Через 3 часа", 3 * 3600), ("Завтра в это же время", 86400), ("Через неделю", 7 * 86400)]
-        : [("In 1 hour", 3600), ("In 3 hours", 3 * 3600), ("Tomorrow, same time", 86400), ("In a week", 7 * 86400)]
+    let delays: [Int32] = [3600, 10800, 86400, 604800]
+    let titles: [String]
+    if ru {
+        titles = ["Через 1 час", "Через 3 часа", "Завтра в это же время", "Через неделю"]
+    } else {
+        titles = ["In 1 hour", "In 3 hours", "Tomorrow, same time", "In a week"]
+    }
+    let options: [(String, Int32)] = Array(zip(titles, delays))
     let sheet = UIAlertController(title: ru ? "Отправить ещё раз" : "Send Again", message: ru ? "Сообщение будет запланировано в этом чате. Его видно в «Отложенных»." : "The message is scheduled in this chat. You'll find it in Scheduled Messages.", preferredStyle: .actionSheet)
     for (title, delay) in options {
         sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
