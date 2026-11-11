@@ -74,6 +74,8 @@ private enum SGBoolSetting: String {
     case menuCopyWithAuthor
     case menuWriteAuthor
     case menuMessageCard
+    case menuScheduleRepeat
+    case alwaysSilent
     case menuLinks
     case menuWebSearch
     case menuClearCache
@@ -351,7 +353,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
 
     // 👻 Ghost mode (can be switched off for everyone from the admin bot)
     if ghostAvailable {
-        let ghostOn = settings.ghostMode && hasPro
+        let ghostOn = settings.ghostMode && !settings.ghostTimerExpired && hasPro
         entries.append(.header(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Header", lang), badge: nil))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostMode, value: ghostOn, text: "👻  " + i18n("Settings.Ghost.Enabled", lang) + lock, enabled: hasPro))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostHideOnline, value: settings.ghostHideOnline, text: i18n("Settings.Ghost.HideOnline", lang), enabled: ghostOn))
@@ -359,6 +361,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostReadOnReply, value: settings.ghostReadOnReply, text: i18n("Settings.Ghost.ReadOnReply", lang), enabled: ghostOn && settings.ghostNoReadReceipts))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: settings.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: settings.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
+        entries.append(.action(id: id.count, section: .ghost, actionType: AnyHashable("hgGhostTimer"), text: "⏱  " + (ru ? "Включить на время…" : "Turn On for a While…") + (settings.ghostMode && settings.ghostUntil != 0 && !settings.ghostTimerExpired ? (ru ? " (до " : " (until ") + DateFormatter.localizedString(from: Date(timeIntervalSince1970: TimeInterval(settings.ghostUntil)), dateStyle: .none, timeStyle: .short) + ")" : "") + lock, kind: .generic))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .hgShowGhostButton, value: settings.hgShowGhostButton, text: ru ? "Кнопка-глаз над чатами" : "Eye Button Above Chats", enabled: hasPro))
         entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang) + (ru ? "\n\nИсключения: удерживайте чат в списке → «Отправлять прочтение здесь».\nБыстрые команды: holygram://sg/ghost, ghost_on, ghost_off." : "\n\nExceptions: long-press a chat → Send Read Receipts Here.\nShortcuts: holygram://sg/ghost, ghost_on, ghost_off.")))
     } else {
@@ -393,6 +396,9 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: settings.hideSimilarChannels, text: "📺  " + i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: settings.hidePaidFeatureRows, text: "⭐️  " + i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideFolderBadges, value: settings.hideFolderBadges, text: "🔢  " + i18n("Settings.Folders.HideBadges", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .alwaysSilent, value: settings.alwaysSilent && hasPro, text: "🔕  " + (ru ? "Всегда отправлять без звука" : "Always Send Silently") + lock, enabled: hasPro))
+    let signature = settings.outgoingSignature
+    entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgEditSignature"), text: "✍️  " + (ru ? "Подпись к сообщениям" : "Message Signature") + lock + (signature.isEmpty ? "" : ": " + String(signature.prefix(30))), kind: .generic))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .confirmStickerSend, value: settings.confirmStickerSend && hasPro, text: "🧸  " + i18n("Settings.HG.ConfirmSticker", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .confirmVoiceSend, value: settings.confirmVoiceSend && hasPro, text: "🎙  " + i18n("Settings.HG.ConfirmVoice", lang) + lock, enabled: hasPro))
     entries.append(.notice(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Notice", lang)))
@@ -423,6 +429,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuWriteAuthor, value: settings.menuWriteAuthor, text: ru ? "✉️  Написать автору" : "✉️  Message Author", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuLinks, value: settings.menuLinks, text: ru ? "🔗  Ссылки из сообщения" : "🔗  Links in Message", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuWebSearch, value: settings.menuWebSearch, text: ru ? "🌐  Найти в интернете" : "🌐  Search the Web", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuScheduleRepeat, value: settings.menuScheduleRepeat, text: ru ? "🗓  Отправить ещё раз позже" : "🗓  Send Again Later", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuMessageCard, value: settings.menuMessageCard, text: ru ? "🖼  Картинка сообщения" : "🖼  Message as Image", enabled: true))
     entries.append(.notice(id: id.count, section: .holyGramMenus, text: ru ? "Выключенные пункты не показываются в меню. Функции Pro появляются в меню только с HolyGram Pro." : "Turned-off items don't appear in menus. Pro items appear only with HolyGram Pro."))
 
@@ -696,6 +703,7 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
         // MARK: HolyGram ghost mode
         case .ghostMode:
             SGSimpleSettings.shared.ghostMode = value
+            SGSimpleSettings.shared.ghostUntil = 0
             simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
         case .ghostHideOnline:
             SGSimpleSettings.shared.ghostHideOnline = value
@@ -758,6 +766,10 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.menuWriteAuthor = value
         case .menuMessageCard:
             SGSimpleSettings.shared.menuMessageCard = value
+        case .menuScheduleRepeat:
+            SGSimpleSettings.shared.menuScheduleRepeat = value
+        case .alwaysSilent:
+            SGSimpleSettings.shared.alwaysSilent = value
         case .menuLinks:
             SGSimpleSettings.shared.menuLinks = value
         case .menuWebSearch:
@@ -1162,6 +1174,46 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 simplePromise.set(true)
             }))
             hgTopViewController()?.present(alert, animated: true)
+            return
+        }
+        // MARK: HolyGram: ghost mode that switches itself off
+        if actionType == AnyHashable("hgGhostTimer") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            let sheet = UIAlertController(title: ru ? "Режим призрака на время" : "Ghost Mode for a While", message: ru ? "Потом он выключится сам." : "It turns itself off afterwards.", preferredStyle: .actionSheet)
+            let options: [(String, Int32)] = ru ? [("30 минут", 1800), ("1 час", 3600), ("3 часа", 10800), ("8 часов", 28800), ("24 часа", 86400)] : [("30 minutes", 1800), ("1 hour", 3600), ("3 hours", 10800), ("8 hours", 28800), ("24 hours", 86400)]
+            for (title, seconds) in options {
+                sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
+                    SGSimpleSettings.shared.ghostUntil = Int32(Date().timeIntervalSince1970) + seconds
+                    SGSimpleSettings.shared.ghostMode = true
+                    simplePromise.set(true)
+                }))
+            }
+            sheet.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+            if let presenter = hgTopViewController() {
+                if let popover = sheet.popoverPresentationController {
+                    popover.sourceView = presenter.view
+                    popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+                    popover.permittedArrowDirections = []
+                }
+                presenter.present(sheet, animated: true)
+            }
+            return
+        }
+        // MARK: HolyGram: text added to every outgoing message
+        if actionType == AnyHashable("hgEditSignature") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            hgPresentTextInput(title: ru ? "Подпись к сообщениям" : "Message Signature", message: ru ? "Добавляется в конец каждого отправленного текста. Оставьте пустым, чтобы выключить. Не добавляется в секретных чатах, ботам и к командам." : "Added to the end of every message you send. Leave empty to turn off. Not added in secret chats, to bots or to commands.", text: SGSimpleSettings.shared.outgoingSignature, placeholder: ru ? "Например: — отправлено из HolyGram" : "e.g. — sent from HolyGram", doneTitle: ru ? "Сохранить" : "Save", cancelTitle: ru ? "Отмена" : "Cancel", completion: { text in
+                SGSimpleSettings.shared.outgoingSignature = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                simplePromise.set(true)
+            })
             return
         }
         // MARK: HolyGram: every contact as a .vcf file

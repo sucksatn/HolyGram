@@ -15,6 +15,7 @@ private enum DeletedMessagesSection: Int32, SGItemListSection {
     case search
     case messages
     case notice
+    case clear
 }
 
 private typealias DeletedMessagesEntry = SGItemListUIEntry<DeletedMessagesSection, AnyHashable, AnyHashable, AnyHashable, AnyHashable, AnyHashable>
@@ -26,7 +27,17 @@ public func holyGramDeletedMessagesController(context: AccountContext) -> ViewCo
     let ids = HolyGramDeletedIndex.entries().prefix(deletedMessagesLimit).map { entry in
         EngineMessage.Id(peerId: EnginePeer.Id(entry.peerId), namespace: entry.namespace, id: entry.id)
     }
-    return holyGramStoredMessagesController(context: context, ids: Array(ids), title: ("Удалённые сообщения", "Deleted Messages"), empty: ("Здесь появятся сообщения, которые удалили собеседники. Включите «Сохранять удалённые сообщения».", "Messages others delete will show up here. Turn on Keep Deleted Messages."))
+    return holyGramStoredMessagesController(context: context, ids: Array(ids), title: ("Удалённые сообщения", "Deleted Messages"), empty: ("Здесь появятся сообщения, которые удалили собеседники. Включите «Сохранять удалённые сообщения».", "Messages others delete will show up here. Turn on Keep Deleted Messages."), clear: { completion in
+        // The kept copies exist only on this device: removing them locally removes them for good.
+        let allIds = HolyGramDeletedIndex.entries().map { entry in
+            EngineMessage.Id(peerId: EnginePeer.Id(entry.peerId), namespace: entry.namespace, id: entry.id)
+        }
+        let _ = (context.engine.messages.deleteMessagesInteractively(messageIds: allIds, type: .forLocalPeer)
+        |> deliverOnMainQueue).start(completed: {
+            HolyGramDeletedIndex.clear()
+            completion()
+        })
+    })
 }
 
 public func holyGramBookmarksController(context: AccountContext) -> ViewController {
@@ -37,8 +48,10 @@ public func holyGramBookmarksController(context: AccountContext) -> ViewControll
 }
 
 /// A searchable list of messages by id that opens each one in its chat.
-private func holyGramStoredMessagesController(context: AccountContext, ids: [EngineMessage.Id], title: (String, String), empty: (String, String)) -> ViewController {
+private func holyGramStoredMessagesController(context: AccountContext, ids: [EngineMessage.Id], title: (String, String), empty: (String, String), clear: ((@escaping () -> Void) -> Void)? = nil) -> ViewController {
     let query = ValuePromise<String>("", ignoreRepeated: true)
+    let cleared = ValuePromise<Bool>(false, ignoreRepeated: true)
+    var presentImpl: ((ViewController) -> Void)?
     var openMessageImpl: ((EngineMessage.Id) -> Void)?
 
     let messagesSignal: Signal<[EngineMessage], NoError> = {
@@ -50,6 +63,19 @@ private func holyGramStoredMessagesController(context: AccountContext, ids: [Eng
     }()
 
     let arguments = SGItemListArguments<AnyHashable, AnyHashable, AnyHashable, AnyHashable, AnyHashable>(context: context, action: { action in
+        if action == AnyHashable("hgClear"), let clear {
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+            presentImpl?(textAlertController(context: context, title: ru ? "Очистить удалённые сообщения?" : "Clear deleted messages?", text: ru ? "Сохранённые копии удалённых сообщений сотрутся с этого устройства навсегда." : "The kept copies of deleted messages are erased from this device for good.", actions: [
+                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                TextAlertAction(type: .destructiveAction, title: ru ? "Очистить" : "Clear", action: {
+                    clear {
+                        cleared.set(true)
+                    }
+                })
+            ]))
+            return
+        }
         guard let messageId = action.base as? EngineMessage.Id else {
             return
         }
@@ -58,8 +84,9 @@ private func holyGramStoredMessagesController(context: AccountContext, ids: [Eng
         query.set(text)
     })
 
-    let signal = combineLatest(context.sharedContext.presentationData, messagesSignal, query.get())
-    |> map { presentationData, messages, query -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    let signal = combineLatest(context.sharedContext.presentationData, messagesSignal, query.get(), cleared.get())
+    |> map { presentationData, messages, query, isCleared -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        let messages = isCleared ? [] : messages
         let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: presentationData.strings.baseLanguageCode)
@@ -100,6 +127,10 @@ private func holyGramStoredMessagesController(context: AccountContext, ids: [Eng
             notice = ru ? "Нажмите на сообщение, чтобы открыть его в чате." : "Tap a message to open it in its chat."
         }
         entries.append(.notice(id: id, section: .notice, text: notice))
+        id += 1
+        if clear != nil && !messages.isEmpty {
+            entries.append(.action(id: id, section: .clear, actionType: AnyHashable("hgClear"), text: ru ? "Очистить все" : "Clear All", kind: .destructive))
+        }
 
         let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(ru ? title.0 : title.1), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: nil, initialScrollToItem: nil)
@@ -107,6 +138,9 @@ private func holyGramStoredMessagesController(context: AccountContext, ids: [Eng
     }
 
     let controller = ItemListController(context: context, state: signal)
+    presentImpl = { [weak controller] c in
+        controller?.present(c, in: .window(.root))
+    }
     openMessageImpl = { [weak controller] messageId in
         guard let navigationController = controller?.navigationController as? NavigationController else {
             return

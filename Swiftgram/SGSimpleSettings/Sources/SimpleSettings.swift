@@ -135,6 +135,10 @@ public class SGSimpleSettings {
         case hiddenChats
         case lockedChats
         case highlightKeywords
+        case ghostUntil
+        case alwaysSilent
+        case outgoingSignature
+        case menuScheduleRepeat
         case silentChats
         case hgShowGhostButton
         case menuGhostException
@@ -345,6 +349,10 @@ public class SGSimpleSettings {
         Keys.hiddenChats.rawValue: [String](),
         Keys.lockedChats.rawValue: [String](),
         Keys.highlightKeywords.rawValue: [String](),
+        Keys.ghostUntil.rawValue: Int32(0),
+        Keys.alwaysSilent.rawValue: false,
+        Keys.outgoingSignature.rawValue: "",
+        Keys.menuScheduleRepeat.rawValue: true,
         Keys.silentChats.rawValue: [String](),
         Keys.hgShowGhostButton.rawValue: true,
         Keys.menuGhostException.rawValue: true,
@@ -575,6 +583,22 @@ public class SGSimpleSettings {
     /// Words highlighted in message text, case-insensitive.
     @UserDefault(key: Keys.highlightKeywords.rawValue)
     public var highlightKeywords: [String]
+
+    /// Ghost mode switches itself off at this unix time; 0 means it stays on.
+    @UserDefault(key: Keys.ghostUntil.rawValue)
+    public var ghostUntil: Int32
+
+    /// Every message is sent without sound, in every chat.
+    @UserDefault(key: Keys.alwaysSilent.rawValue)
+    public var alwaysSilent: Bool
+
+    /// Text added at the end of every outgoing text message; empty for none.
+    @UserDefault(key: Keys.outgoingSignature.rawValue)
+    public var outgoingSignature: String
+
+    /// Message menu: send this text again later (scheduled).
+    @UserDefault(key: Keys.menuScheduleRepeat.rawValue)
+    public var menuScheduleRepeat: Bool
 
     /// Chats (peer ids) where messages are always sent without sound.
     @UserDefault(key: Keys.silentChats.rawValue)
@@ -931,7 +955,24 @@ extension SGSimpleSettings {
     public var hgEditsAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("edits") }
 
     // MARK: HolyGram ghost mode
-    private var ghostActive: Bool { ghostMode && hgGhostAvailable && hgPro }
+    private var ghostActive: Bool { ghostMode && !ghostTimerExpired && hgGhostAvailable && hgPro }
+    /// A timed ghost mode whose time is up.
+    public var ghostTimerExpired: Bool {
+        let until = ghostUntil
+        return until != 0 && Int32(Date().timeIntervalSince1970) >= until
+    }
+    /// Turns a timed ghost mode off for good once its time is up. Called when the app becomes active.
+    public func expireGhostTimerIfNeeded() {
+        if ghostMode && ghostTimerExpired {
+            ghostMode = false
+            ghostUntil = 0
+        }
+    }
+    public var hgAlwaysSilent: Bool { alwaysSilent && hgPro }
+    public var hgOutgoingSignature: String {
+        let value = outgoingSignature.trimmingCharacters(in: .whitespacesAndNewlines)
+        return hgPro ? value : ""
+    }
     /// Never report "online"; the account always looks offline.
     public var ghostBlocksOnline: Bool { ghostActive && ghostHideOnline }
     /// Messages are marked read locally only; the sender keeps seeing them as unread.

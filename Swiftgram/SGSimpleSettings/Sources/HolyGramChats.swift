@@ -16,6 +16,9 @@ public extension SGSimpleSettings {
     }
 
     func isSilentChat(_ peerIdValue: Int64) -> Bool {
+        if self.alwaysSilent && self.hgPro {
+            return true
+        }
         return self.hgPro && self.silentChats.contains(String(peerIdValue))
     }
 
