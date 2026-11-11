@@ -18,6 +18,8 @@ import UIKit
 import UserNotifications
 import AVFoundation
 import NaturalLanguage
+import CoreImage
+import UniformTypeIdentifiers
 import SaveToCameraRoll
 import SGSimpleSettings
 import ChatControllerInteraction
@@ -130,6 +132,11 @@ enum SGContextMenuActionFactory {
     case firstMessage(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case messageInfo(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case speak // MARK: HolyGram
+    case saveFile(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case qrCode(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case fixLayout(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case addToNote(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case copyPlain(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case scheduleRepeat(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case links(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case webSearch(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
@@ -270,6 +277,66 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             Queue.mainQueue().after(0.3) {
                 hgPresentScheduleRepeat(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
             }
+        }))
+    case let .saveFile(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Сохранить файл" : "Save File", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "square.and.arrow.down"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            hgShareMessageFile(context: context, controllerInteraction: controllerInteraction, message: message, ru: ru)
+        }))
+    case let .qrCode(controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "QR-код" : "QR Code", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "qrcode"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgShareQrCode(controllerInteraction: controllerInteraction, message: message, ru: ru)
+            }
+        }))
+    case let .fixLayout(controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Исправить раскладку" : "Fix Keyboard Layout", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "keyboard"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                guard let presenter = hgPresenter(controllerInteraction) else {
+                    return
+                }
+                let fixed = hgSwitchKeyboardLayout(message.text)
+                let alert = UIAlertController(title: ru ? "Исправленная раскладка" : "Fixed Layout", message: fixed, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: ru ? "Скопировать" : "Copy", style: .default, handler: { _ in
+                    UIPasteboard.general.string = fixed
+                }))
+                alert.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_OK, style: .cancel))
+                presenter.present(alert, animated: true)
+            }
+        }))
+    case let .addToNote(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "В заметку о чате" : "Add to Chat Note", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "note.text.badge.plus"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            let peerIdValue = message.id.peerId.toInt64()
+            let current = HolyGramNotes.note(peerId: peerIdValue) ?? ""
+            let addition = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            HolyGramNotes.setNote(peerId: peerIdValue, text: current.isEmpty ? addition : current + "\n" + addition)
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Добавлено в заметку о чате" : "Added to the chat note", timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+        }))
+    case let .copyPlain(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Копировать без форматирования" : "Copy as Plain Text", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "textformat"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            UIPasteboard.general.setItems([[UTType.plainText.identifier: message.text]], options: [:])
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .copy(text: ru ? "Скопировано без форматирования" : "Copied as plain text"), elevatedLayout: false, action: { _ in return false }), nil)
         }))
     case .speak:
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
@@ -608,6 +675,143 @@ private func hgPresentScheduleRepeat(context: AccountContext, controllerInteract
         popover.permittedArrowDirections = []
     }
     presenter.present(sheet, animated: true)
+}
+
+// MARK: HolyGram: the original file of a voice/video message, document, music or photo, via the share sheet
+private func hgShareMessageFile(context: AccountContext, controllerInteraction: ChatControllerInteraction, message: EngineRawMessage, ru: Bool) {
+    var resource: MediaResource?
+    var media: Media?
+    var fileName = "HolyGram-\(message.id.id)"
+    var contentType: MediaResourceUserContentType = .file
+    for item in message.media {
+        if let file = item as? TelegramMediaFile {
+            resource = file.resource
+            media = file
+            if let name = file.fileName, !name.isEmpty {
+                fileName = name
+            } else {
+                let ext: String
+                if file.isVoice {
+                    ext = "ogg"
+                    contentType = .audio
+                } else if file.isInstantVideo || file.isVideo {
+                    ext = "mp4"
+                    contentType = .video
+                } else if file.mimeType.hasPrefix("audio/") {
+                    ext = file.mimeType == "audio/mpeg" ? "mp3" : "m4a"
+                    contentType = .audio
+                } else {
+                    ext = file.mimeType.split(separator: "/").last.map(String.init) ?? "bin"
+                }
+                fileName += "." + ext
+            }
+            break
+        } else if let image = item as? TelegramMediaImage, let representation = largestImageRepresentation(image.representations) {
+            resource = representation.resource
+            media = image
+            fileName += ".jpg"
+            contentType = .image
+            break
+        }
+    }
+    guard let resource, let media else {
+        return
+    }
+    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+    controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Готовлю файл…" : "Preparing the file…", timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)
+    let mediaBox = context.account.postbox.mediaBox
+    let reference = AnyMediaReference.message(message: MessageReference(message), media: media).resourceReference(resource)
+    let fetch = fetchedMediaResource(mediaBox: mediaBox, userLocation: .peer(message.id.peerId), userContentType: contentType, reference: reference).startStandalone()
+    let _ = (mediaBox.resourceData(resource)
+    |> filter { $0.complete }
+    |> take(1)
+    |> deliverOnMainQueue).start(next: { data in
+        fetch.dispose()
+        let safeName = String(fileName.map { "/\\:?*\"<>|".contains($0) ? "_" : $0 })
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("holygram-share-\(Int64.random(in: 1 ..< Int64.max))", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent(safeName)
+        do {
+            try FileManager.default.copyItem(at: URL(fileURLWithPath: data.path), to: url)
+        } catch {
+            return
+        }
+        guard let presenter = hgPresenter(controllerInteraction) else {
+            return
+        }
+        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let popover = activity.popoverPresentationController {
+            popover.sourceView = presenter.view
+            popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+            popover.permittedArrowDirections = []
+        }
+        presenter.present(activity, animated: true)
+    })
+}
+
+// MARK: HolyGram: a QR code of the message's first link, or of its text
+private func hgShareQrCode(controllerInteraction: ChatControllerInteraction, message: EngineRawMessage, ru: Bool) {
+    guard let presenter = hgPresenter(controllerInteraction) else {
+        return
+    }
+    var content = message.text
+    if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue), let match = detector.firstMatch(in: message.text, options: [], range: NSRange(location: 0, length: (message.text as NSString).length)), let url = match.url {
+        content = url.absoluteString
+    }
+    content = String(content.prefix(1200))
+    guard let data = content.data(using: .utf8), let filter = CIFilter(name: "CIQRCodeGenerator") else {
+        return
+    }
+    filter.setValue(data, forKey: "inputMessage")
+    filter.setValue("M", forKey: "inputCorrectionLevel")
+    guard let output = filter.outputImage else {
+        return
+    }
+    let scale = 1000.0 / output.extent.width
+    let scaled = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+    guard let cgImage = CIContext().createCGImage(scaled, from: scaled.extent) else {
+        return
+    }
+    let size = CGSize(width: scaled.extent.width + 120.0, height: scaled.extent.height + 120.0)
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1.0
+    let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+        UIColor.white.setFill()
+        context.fill(CGRect(origin: .zero, size: size))
+        context.cgContext.interpolationQuality = .none
+        UIImage(cgImage: cgImage).draw(in: CGRect(x: 60.0, y: 60.0, width: scaled.extent.width, height: scaled.extent.height))
+    }
+    let activity = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+    if let popover = activity.popoverPresentationController {
+        popover.sourceView = presenter.view
+        popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+        popover.permittedArrowDirections = []
+    }
+    presenter.present(activity, animated: true)
+}
+
+// MARK: HolyGram: text typed on the wrong keyboard (ghbdtn → привет and back)
+func hgSwitchKeyboardLayout(_ text: String) -> String {
+    let latin = Array("`qwertyuiop[]asdfghjkl;'zxcvbnm,./~QWERTYUIOP{}ASDFGHJKL:\"ZXCVBNM<>?")
+    let cyrillic = Array("ёйцукенгшщзхъфывапролджэячсмитьбю.ЁЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ,")
+    var latinToCyrillic: [Character: Character] = [:]
+    var cyrillicToLatin: [Character: Character] = [:]
+    for (l, c) in zip(latin, cyrillic) {
+        latinToCyrillic[l] = c
+        if cyrillicToLatin[c] == nil {
+            cyrillicToLatin[c] = l
+        }
+    }
+    let letters = text.filter { $0.isLetter }
+    let cyrillicCount = letters.filter { cyrillicToLatin[$0] != nil }.count
+    // Mostly Cyrillic letters: it was English typed on the Russian layout, and the other way round.
+    let toLatin = cyrillicCount * 2 > letters.count
+    return String(text.map { character in
+        if toLatin {
+            return cyrillicToLatin[character] ?? character
+        }
+        return latinToCyrillic[character] ?? character
+    })
 }
 
 // MARK: HolyGram: the topmost view controller of the chat's window

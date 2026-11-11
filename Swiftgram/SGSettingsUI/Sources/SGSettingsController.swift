@@ -75,6 +75,11 @@ private enum SGBoolSetting: String {
     case menuWriteAuthor
     case menuMessageCard
     case menuScheduleRepeat
+    case menuSaveFile
+    case menuQrCode
+    case menuFixLayout
+    case menuAddToNote
+    case menuCopyPlain
     case alwaysSilent
     case menuLinks
     case menuWebSearch
@@ -430,6 +435,11 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuLinks, value: settings.menuLinks, text: ru ? "🔗  Ссылки из сообщения" : "🔗  Links in Message", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuWebSearch, value: settings.menuWebSearch, text: ru ? "🌐  Найти в интернете" : "🌐  Search the Web", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuScheduleRepeat, value: settings.menuScheduleRepeat, text: ru ? "🗓  Отправить ещё раз позже" : "🗓  Send Again Later", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSaveFile, value: settings.menuSaveFile, text: ru ? "💾  Сохранить файл" : "💾  Save File", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuQrCode, value: settings.menuQrCode, text: ru ? "🔳  QR-код" : "🔳  QR Code", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuFixLayout, value: settings.menuFixLayout, text: ru ? "⌨️  Исправить раскладку" : "⌨️  Fix Keyboard Layout", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuAddToNote, value: settings.menuAddToNote, text: ru ? "📒  В заметку о чате" : "📒  Add to Chat Note", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyPlain, value: settings.menuCopyPlain, text: ru ? "🔤  Копировать без форматирования" : "🔤  Copy as Plain Text", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuMessageCard, value: settings.menuMessageCard, text: ru ? "🖼  Картинка сообщения" : "🖼  Message as Image", enabled: true))
     entries.append(.notice(id: id.count, section: .holyGramMenus, text: ru ? "Выключенные пункты не показываются в меню. Функции Pro появляются в меню только с HolyGram Pro." : "Turned-off items don't appear in menus. Pro items appear only with HolyGram Pro."))
 
@@ -768,6 +778,16 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.menuMessageCard = value
         case .menuScheduleRepeat:
             SGSimpleSettings.shared.menuScheduleRepeat = value
+        case .menuSaveFile:
+            SGSimpleSettings.shared.menuSaveFile = value
+        case .menuQrCode:
+            SGSimpleSettings.shared.menuQrCode = value
+        case .menuFixLayout:
+            SGSimpleSettings.shared.menuFixLayout = value
+        case .menuAddToNote:
+            SGSimpleSettings.shared.menuAddToNote = value
+        case .menuCopyPlain:
+            SGSimpleSettings.shared.menuCopyPlain = value
         case .alwaysSilent:
             SGSimpleSettings.shared.alwaysSilent = value
         case .menuLinks:
