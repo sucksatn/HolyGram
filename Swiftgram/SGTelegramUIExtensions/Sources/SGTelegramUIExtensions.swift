@@ -129,6 +129,8 @@ enum SGContextMenuActionFactory {
     case firstMessage(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case messageInfo(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case speak // MARK: HolyGram
+    case links(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case webSearch(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case copyWithAuthor(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case writeToAuthor(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case messageCard(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
@@ -233,6 +235,29 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             Queue.mainQueue().after(0.3) {
                 hgShowMessageInfo(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
             }
+        }))
+    case let .links(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Ссылки из сообщения" : "Links in Message", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "link"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgPresentLinks(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
+            }
+        }))
+    case let .webSearch(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Найти в интернете" : "Search the Web", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "globe"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            let query = String(message.text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(300))
+            guard !query.isEmpty, let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                return
+            }
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            context.sharedContext.openExternalUrl(context: context, urlContext: .generic, url: "https://www.google.com/search?q=\(encoded)", forceExternal: false, presentationData: presentationData, navigationController: controllerInteraction.navigationController(), dismissInput: {})
         }))
     case .speak:
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
@@ -478,6 +503,66 @@ private func hgShareMessageCard(context: AccountContext, controllerInteraction: 
         popover.permittedArrowDirections = []
     }
     presenter.present(activity, animated: true)
+}
+
+// MARK: HolyGram: every link of a message, from its entities and its plain text
+private func hgPresentLinks(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage, ru: Bool) {
+    guard let presenter = hgPresenter(controllerInteraction), let sourceView = controllerInteraction.navigationController()?.view else {
+        return
+    }
+    var links: [String] = []
+    let text = message.text as NSString
+    for attribute in message.attributes {
+        guard let entities = attribute as? TextEntitiesMessageAttribute else {
+            continue
+        }
+        for entity in entities.entities {
+            switch entity.type {
+            case let .TextUrl(url):
+                links.append(url)
+            case .Url:
+                if entity.range.upperBound <= text.length {
+                    links.append(text.substring(with: NSRange(location: entity.range.lowerBound, length: entity.range.count)))
+                }
+            default:
+                break
+            }
+        }
+    }
+    if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+        for match in detector.matches(in: message.text, options: [], range: NSRange(location: 0, length: text.length)) {
+            if let url = match.url?.absoluteString {
+                links.append(url)
+            }
+        }
+    }
+    for media in message.media {
+        if let webpage = media as? TelegramMediaWebpage, case let .Loaded(content) = webpage.content {
+            links.append(content.url)
+        }
+    }
+    var seen = Set<String>()
+    links = links.filter { seen.insert($0.lowercased()).inserted }
+
+    let sheet = UIAlertController(title: ru ? "Ссылки из сообщения" : "Links in Message", message: links.isEmpty ? (ru ? "В сообщении нет ссылок." : "No links in this message.") : nil, preferredStyle: .actionSheet)
+    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+    for link in links.prefix(20) {
+        sheet.addAction(UIAlertAction(title: String(link.prefix(70)), style: .default, handler: { _ in
+            context.sharedContext.openExternalUrl(context: context, urlContext: .generic, url: link, forceExternal: false, presentationData: presentationData, navigationController: controllerInteraction.navigationController(), dismissInput: {})
+        }))
+    }
+    if !links.isEmpty {
+        sheet.addAction(UIAlertAction(title: ru ? "Скопировать все (\(links.count))" : "Copy All (\(links.count))", style: .default, handler: { _ in
+            UIPasteboard.general.string = links.joined(separator: "\n")
+        }))
+    }
+    sheet.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_Cancel, style: .cancel))
+    if let popover = sheet.popoverPresentationController {
+        popover.sourceView = sourceView
+        popover.sourceRect = CGRect(x: sourceView.bounds.midX, y: sourceView.bounds.midY, width: 1.0, height: 1.0)
+        popover.permittedArrowDirections = []
+    }
+    presenter.present(sheet, animated: true)
 }
 
 // MARK: HolyGram: the topmost view controller of the chat's window

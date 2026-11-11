@@ -441,6 +441,25 @@ func chatContextMenuItems(context: AccountContext, peerId: EnginePeer.Id, promoI
                                     }
                                 })))
                             }
+                            // MARK: HolyGram: delete this chat's downloaded photos, videos and files
+                            if SGSimpleSettings.shared.menuClearCache {
+                                items.append(.action(ContextMenuActionItem(text: ru ? "Очистить кеш чата" : "Clear Chat Cache", icon: { theme in generateTintedImage(image: UIImage(systemName: "externaldrive.badge.minus"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
+                                    f(.default)
+                                    guard let chatListController else {
+                                        return
+                                    }
+                                    let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                                    chatListController.present(textAlertController(context: context, title: ru ? "Очистить кеш чата?" : "Clear chat cache?", text: ru ? "Скачанные фото, видео и файлы этого чата удалятся с телефона. В Telegram они останутся, их можно будет скачать снова." : "This chat's downloaded photos, videos and files are removed from the phone. They stay in the cloud and can be downloaded again.", actions: [
+                                        TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                                        TextAlertAction(type: .destructiveAction, title: ru ? "Очистить" : "Clear", action: { [weak chatListController] in
+                                            let _ = (context.engine.resources.clearStorage(peerId: peerId, categories: [.photos, .videos, .files, .music, .stickers, .avatars, .misc, .stories], includeMessages: [], excludeMessages: [])
+                                            |> deliverOnMainQueue).start(completed: {
+                                                chatListController?.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Кеш чата очищен" : "Chat cache cleared", timeout: 2.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                                            })
+                                        })
+                                    ]), in: .window(.root))
+                                })))
+                            }
                             // MARK: HolyGram: copy the chat ID (Bot API style) and its link
                             if SGSimpleSettings.shared.menuCopyId {
                                 items.append(.action(ContextMenuActionItem(text: ru ? "Скопировать ID и ссылку" : "Copy ID and Link", icon: { theme in generateTintedImage(image: UIImage(systemName: "number"), color: theme.contextMenu.primaryColor) }, action: { [weak chatListController] _, f in
