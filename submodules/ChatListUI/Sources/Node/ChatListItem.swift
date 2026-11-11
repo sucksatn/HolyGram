@@ -3347,6 +3347,11 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
             }
             
             attributedText = renderInstantPagePreviewIcons(attributedText, font: textFont, textColor: theme.messageTextColor)
+            // MARK: HolyGram: message text hidden in the list (privacy from people around)
+            if SGSimpleSettings.shared.hideChatListPreviews && SGSimpleSettings.shared.hgPro && attributedText.length > 0 {
+                let ru = item.presentationData.strings.baseLanguageCode.hasPrefix("ru") || item.presentationData.strings.baseLanguageCode.hasPrefix("uk")
+                attributedText = NSAttributedString(string: ru ? "Сообщение скрыто" : "Message hidden", font: textFont, textColor: theme.messageTextColor)
+            }
             textAttributedString = attributedText
             
             let dateText: String

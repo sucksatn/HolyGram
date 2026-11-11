@@ -79,6 +79,8 @@ private enum SGBoolSetting: String {
     case hidePrivateNotifications
     case chatListMarkers
     case ghostShortcut
+    case hideChatListPreviews
+    case ghostSchedule
     case menuGhostChat
     case menuSendReadNow
     case profileNote
@@ -376,6 +378,12 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: settings.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: settings.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
         entries.append(.action(id: id.count, section: .ghost, actionType: AnyHashable("hgGhostTimer"), text: "⏱  " + (ru ? "Включить на время…" : "Turn On for a While…") + (settings.ghostMode && settings.ghostUntil != 0 && !settings.ghostTimerExpired ? (ru ? " (до " : " (until ") + DateFormatter.localizedString(from: Date(timeIntervalSince1970: TimeInterval(settings.ghostUntil)), dateStyle: .none, timeStyle: .short) + ")" : "") + lock, kind: .generic))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostSchedule, value: settings.ghostSchedule && hasPro, text: "🌙  " + (ru ? "По расписанию" : "On a Schedule") + lock, enabled: hasPro))
+        if settings.ghostSchedule && hasPro {
+            entries.append(.action(id: id.count, section: .ghost, actionType: AnyHashable("hgGhostScheduleHours"), text: (ru ? "Часы: " : "Hours: ") + String(format: "%02d:00 – %02d:00", settings.ghostScheduleFrom, settings.ghostScheduleTo) + (settings.ghostScheduleActive ? (ru ? " (сейчас вкл)" : " (on now)") : ""), kind: .generic))
+        } else {
+            id.increment(1)
+        }
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostShortcut, value: settings.ghostShortcut, text: ru ? "Пункт в меню иконки приложения" : "In the App Icon Menu", enabled: hasPro))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .hgShowGhostButton, value: settings.hgShowGhostButton, text: ru ? "Кнопка-глаз над чатами" : "Eye Button Above Chats", enabled: hasPro))
         entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang) + (ru ? "\n\nИсключения: удерживайте чат в списке → «Отправлять прочтение здесь».\nБыстрые команды: holygram://sg/ghost, ghost_on, ghost_off." : "\n\nExceptions: long-press a chat → Send Read Receipts Here.\nShortcuts: holygram://sg/ghost, ghost_on, ghost_off.")))
@@ -404,6 +412,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
 
     // 🔐 Privacy
     entries.append(.header(id: id.count, section: .holyGramPrivacy, text: i18n("Settings.HGPrivacy.Header", lang), badge: nil))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideChatListPreviews, value: settings.hideChatListPreviews && hasPro, text: "🫥  " + (ru ? "Скрывать текст сообщений в списке чатов" : "Hide Message Text in the Chat List") + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .streamerMode, value: settings.streamerMode && hasPro, text: "🎥  " + i18n("Settings.HGPrivacy.StreamerMode", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideInAppSwitcher, value: settings.hideInAppSwitcher && hasPro, text: "🌫  " + i18n("Settings.HGPrivacy.HideInAppSwitcher", lang) + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSponsoredMessages, value: settings.hideSponsoredMessages && hasPro, text: "🚫  " + i18n("Settings.HGPrivacy.HideSponsored", lang) + lock, enabled: hasPro))
@@ -809,6 +818,12 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.chatListMarkers = value
         case .ghostShortcut:
             SGSimpleSettings.shared.ghostShortcut = value
+        case .hideChatListPreviews:
+            SGSimpleSettings.shared.hideChatListPreviews = value
+        case .ghostSchedule:
+            SGSimpleSettings.shared.ghostSchedule = value
+            HolyGramShared.publishFromApp()
+            simplePromise.set(true)
         case .menuGhostChat:
             SGSimpleSettings.shared.menuGhostChat = value
         case .menuSendReadNow:
@@ -1287,6 +1302,41 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 let alert = UIAlertController(title: nil, message: locked ? (ru ? "Face ID с аккаунта снят." : "The account is no longer locked.") : (ru ? "Готово. При переключении на этот аккаунт HolyGram попросит Face ID." : "Done. Switching to this account will ask for Face ID."), preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "OK", style: .default))
                 hgTopViewController()?.present(alert, animated: true)
+            })
+            return
+        }
+        // MARK: HolyGram: hours of the daily ghost mode
+        if actionType == AnyHashable("hgGhostScheduleHours") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            let pickHour: (String, @escaping (Int32) -> Void) -> Void = { title, completion in
+                let sheet = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
+                for hour in 0 ..< 24 {
+                    sheet.addAction(UIAlertAction(title: String(format: "%02d:00", hour), style: .default, handler: { _ in
+                        completion(Int32(hour))
+                    }))
+                }
+                sheet.addAction(UIAlertAction(title: ru ? "Отмена" : "Cancel", style: .cancel))
+                guard let presenter = hgTopViewController() else {
+                    return
+                }
+                if let popover = sheet.popoverPresentationController {
+                    popover.sourceView = presenter.view
+                    popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+                    popover.permittedArrowDirections = []
+                }
+                presenter.present(sheet, animated: true)
+            }
+            pickHour(ru ? "Включать в…" : "Turn on at…", { from in
+                // Let the first sheet finish closing before the second one opens.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    pickHour(ru ? "Выключать в…" : "Turn off at…", { to in
+                        SGSimpleSettings.shared.ghostScheduleFrom = from
+                        SGSimpleSettings.shared.ghostScheduleTo = to
+                        HolyGramShared.publishFromApp()
+                        simplePromise.set(true)
+                    })
+                }
             })
             return
         }

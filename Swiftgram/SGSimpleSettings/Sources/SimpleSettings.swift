@@ -145,6 +145,10 @@ public class SGSimpleSettings {
         case lockedAccounts
         case undoSendDelay
         case ghostOnlyChats
+        case hideChatListPreviews
+        case ghostSchedule
+        case ghostScheduleFrom
+        case ghostScheduleTo
         case menuGhostChat
         case menuSendReadNow
         case profileNote
@@ -375,6 +379,10 @@ public class SGSimpleSettings {
         Keys.lockedAccounts.rawValue: [String](),
         Keys.undoSendDelay.rawValue: Int32(0),
         Keys.ghostOnlyChats.rawValue: [String](),
+        Keys.hideChatListPreviews.rawValue: false,
+        Keys.ghostSchedule.rawValue: false,
+        Keys.ghostScheduleFrom.rawValue: Int32(23),
+        Keys.ghostScheduleTo.rawValue: Int32(8),
         Keys.menuGhostChat.rawValue: true,
         Keys.menuSendReadNow.rawValue: true,
         Keys.profileNote.rawValue: true,
@@ -635,6 +643,37 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// The chat list shows "Message hidden" instead of message text.
+    @UserDefault(key: Keys.hideChatListPreviews.rawValue)
+    public var hideChatListPreviews: Bool
+
+    /// Ghost mode turns itself on every day between these hours (local time).
+    @UserDefault(key: Keys.ghostSchedule.rawValue)
+    public var ghostSchedule: Bool
+
+    @UserDefault(key: Keys.ghostScheduleFrom.rawValue)
+    public var ghostScheduleFrom: Int32
+
+    @UserDefault(key: Keys.ghostScheduleTo.rawValue)
+    public var ghostScheduleTo: Int32
+
+    /// Inside the scheduled hours right now.
+    public var ghostScheduleActive: Bool {
+        guard ghostSchedule else {
+            return false
+        }
+        let hour = Int32(Calendar.current.component(.hour, from: Date()))
+        let from = ghostScheduleFrom
+        let to = ghostScheduleTo
+        if from == to {
+            return true
+        }
+        if from < to {
+            return hour >= from && hour < to
+        }
+        return hour >= from || hour < to
+    }
 
     /// Chats read unseen even with ghost mode off.
     @UserDefault(key: Keys.ghostOnlyChats.rawValue)
@@ -1052,7 +1091,7 @@ extension SGSimpleSettings {
     public var hgEditsAvailable: Bool { !HolyGramPro.shared.isRemotelyDisabled("edits") }
 
     // MARK: HolyGram ghost mode
-    private var ghostActive: Bool { ghostMode && !ghostTimerExpired && hgGhostAvailable && hgPro }
+    private var ghostActive: Bool { ((ghostMode && !ghostTimerExpired) || ghostScheduleActive) && hgGhostAvailable && hgPro }
     /// A timed ghost mode whose time is up.
     public var ghostTimerExpired: Bool {
         let until = ghostUntil

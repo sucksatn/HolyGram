@@ -39,7 +39,7 @@ public enum HolyGramShared {
             self.groupDefaults?.set(privateChats, forKey: self.privateChatsKey)
         }
         // Ghost mode state for the Home Screen widget.
-        let ghostOn = settings.ghostMode && !settings.ghostTimerExpired && settings.hgPro && settings.hgGhostAvailable
+        let ghostOn = ((settings.ghostMode && !settings.ghostTimerExpired) || settings.ghostScheduleActive) && settings.hgPro && settings.hgGhostAvailable
         let ghostUntil = ghostOn && settings.ghostUntil != 0 ? Double(settings.ghostUntil) : 0.0
         if self.groupDefaults?.object(forKey: self.ghostOnKey) as? Bool != ghostOn || self.groupDefaults?.double(forKey: self.ghostUntilKey) != ghostUntil {
             self.groupDefaults?.set(ghostOn, forKey: self.ghostOnKey)
