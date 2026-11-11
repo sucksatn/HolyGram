@@ -1,10 +1,13 @@
 // MARK: HolyGram: settings and files the app shares with its extensions
 import Foundation
 import SGAppGroupIdentifier
+import WidgetKit
 
 public enum HolyGramShared {
     private static let keepDeletedKey = "holygram_keep_deleted"
     private static let privateChatsKey = "holygram_private_chats"
+    private static let ghostOnKey = "holygram_ghost_on"
+    private static let ghostUntilKey = "holygram_ghost_until"
 
     /// The notification service and other extensions run in their own process with their own
     /// UserDefaults, so they read what the app published to the shared app group instead.
@@ -34,6 +37,14 @@ public enum HolyGramShared {
         }
         if (self.groupDefaults?.stringArray(forKey: self.privateChatsKey) ?? []) != privateChats {
             self.groupDefaults?.set(privateChats, forKey: self.privateChatsKey)
+        }
+        // Ghost mode state for the Home Screen widget.
+        let ghostOn = settings.ghostMode && !settings.ghostTimerExpired && settings.hgPro && settings.hgGhostAvailable
+        let ghostUntil = ghostOn && settings.ghostUntil != 0 ? Double(settings.ghostUntil) : 0.0
+        if self.groupDefaults?.object(forKey: self.ghostOnKey) as? Bool != ghostOn || self.groupDefaults?.double(forKey: self.ghostUntilKey) != ghostUntil {
+            self.groupDefaults?.set(ghostOn, forKey: self.ghostOnKey)
+            self.groupDefaults?.set(ghostUntil, forKey: self.ghostUntilKey)
+            WidgetCenter.shared.reloadTimelines(ofKind: "HolyGramGhostWidget")
         }
     }
 

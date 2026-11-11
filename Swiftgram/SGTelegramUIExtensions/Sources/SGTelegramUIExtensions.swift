@@ -41,6 +41,7 @@ func sgHandleInternalUrlRoute(context: AccountContext, parsedUrl: URL, navigatio
             let enabled = path == "ghost" ? !SGSimpleSettings.shared.ghostMode : path == "ghost_on"
             SGSimpleSettings.shared.ghostMode = enabled
             SGSimpleSettings.shared.ghostUntil = 0
+            HolyGramShared.publishFromApp()
             text = enabled ? (ru ? "Режим призрака включён" : "Ghost mode is on") : (ru ? "Режим призрака выключен" : "Ghost mode is off")
         }
         context.sharedContext.presentGlobalController(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: text, timeout: 2.5, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), nil)

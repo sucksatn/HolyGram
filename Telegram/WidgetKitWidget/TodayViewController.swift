@@ -941,6 +941,7 @@ struct AllWidgets: WidgetBundle {
    var body: some Widget {
         Static_Widget()
         Static_AvatarsWidget()
+        HolyGramGhostWidget() // MARK: HolyGram
    }
 }
 

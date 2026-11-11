@@ -2289,9 +2289,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
 
     func handleDidBecomeActive() {
+        SGSimpleSettings.shared.expireGhostTimerIfNeeded() // MARK: HolyGram
         HolyGramShared.publishFromApp() // MARK: HolyGram
         HolyGramDeletedIndex.reloadFromDisk() // MARK: HolyGram: messages kept by the notification service
-        SGSimpleSettings.shared.expireGhostTimerIfNeeded() // MARK: HolyGram
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.holyGramApplyStreamerMode() // MARK: HolyGram
         HolyGramPro.shared.refresh() // MARK: HolyGram
@@ -3030,6 +3030,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                                     context.switchAccount()
                                 case .appIcon:
                                     context.openAppIcon()
+                                case .holyGramGhost:
+                                    if let url = URL(string: "holygram://sg/ghost") {
+                                        let _ = sgHandleInternalUrlRoute(context: context.context, parsedUrl: url, navigationController: nil)
+                                    }
                             }
                         }
                     }

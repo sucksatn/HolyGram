@@ -141,6 +141,7 @@ public class SGSimpleSettings {
         case menuScheduleRepeat
         case hidePrivateNotifications
         case chatListMarkers
+        case ghostShortcut
         case profileNote
         case showNoteOnOpen
         case muteNewChannels
@@ -365,6 +366,7 @@ public class SGSimpleSettings {
         Keys.menuScheduleRepeat.rawValue: true,
         Keys.hidePrivateNotifications.rawValue: true,
         Keys.chatListMarkers.rawValue: true,
+        Keys.ghostShortcut.rawValue: true,
         Keys.profileNote.rawValue: true,
         Keys.showNoteOnOpen.rawValue: true,
         Keys.muteNewChannels.rawValue: false,
@@ -623,6 +625,10 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// Ghost mode in the app icon's long-press menu.
+    @UserDefault(key: Keys.ghostShortcut.rawValue)
+    public var ghostShortcut: Bool
 
     /// 🔒 📒 🔕 after chat titles in the chat list.
     @UserDefault(key: Keys.chatListMarkers.rawValue)
