@@ -157,6 +157,9 @@ public class SGSimpleSettings {
         case menuCopyWithAuthor
         case menuWriteAuthor
         case menuMessageCard
+        case menuLinks
+        case menuWebSearch
+        case menuClearCache
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -364,6 +367,9 @@ public class SGSimpleSettings {
         Keys.menuCopyWithAuthor.rawValue: true,
         Keys.menuWriteAuthor.rawValue: true,
         Keys.menuMessageCard.rawValue: true,
+        Keys.menuLinks.rawValue: true,
+        Keys.menuWebSearch.rawValue: true,
+        Keys.menuClearCache.rawValue: true,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -658,6 +664,18 @@ public class SGSimpleSettings {
     /// Message menu: share the message as an image.
     @UserDefault(key: Keys.menuMessageCard.rawValue)
     public var menuMessageCard: Bool
+
+    /// Message menu: links found in the message.
+    @UserDefault(key: Keys.menuLinks.rawValue)
+    public var menuLinks: Bool
+
+    /// Message menu: search the web for the text.
+    @UserDefault(key: Keys.menuWebSearch.rawValue)
+    public var menuWebSearch: Bool
+
+    /// Chat menu: clear the chat's downloaded files.
+    @UserDefault(key: Keys.menuClearCache.rawValue)
+    public var menuClearCache: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
