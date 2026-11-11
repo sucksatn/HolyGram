@@ -139,6 +139,11 @@ public class SGSimpleSettings {
         case alwaysSilent
         case outgoingSignature
         case menuScheduleRepeat
+        case menuSaveFile
+        case menuQrCode
+        case menuFixLayout
+        case menuAddToNote
+        case menuCopyPlain
         case silentChats
         case hgShowGhostButton
         case menuGhostException
@@ -353,6 +358,11 @@ public class SGSimpleSettings {
         Keys.alwaysSilent.rawValue: false,
         Keys.outgoingSignature.rawValue: "",
         Keys.menuScheduleRepeat.rawValue: true,
+        Keys.menuSaveFile.rawValue: true,
+        Keys.menuQrCode.rawValue: true,
+        Keys.menuFixLayout.rawValue: true,
+        Keys.menuAddToNote.rawValue: true,
+        Keys.menuCopyPlain.rawValue: true,
         Keys.silentChats.rawValue: [String](),
         Keys.hgShowGhostButton.rawValue: true,
         Keys.menuGhostException.rawValue: true,
@@ -599,6 +609,26 @@ public class SGSimpleSettings {
     /// Message menu: send this text again later (scheduled).
     @UserDefault(key: Keys.menuScheduleRepeat.rawValue)
     public var menuScheduleRepeat: Bool
+
+    /// Message menu: save the original file.
+    @UserDefault(key: Keys.menuSaveFile.rawValue)
+    public var menuSaveFile: Bool
+
+    /// Message menu: QR code of the link or text.
+    @UserDefault(key: Keys.menuQrCode.rawValue)
+    public var menuQrCode: Bool
+
+    /// Message menu: fix text typed on the wrong keyboard.
+    @UserDefault(key: Keys.menuFixLayout.rawValue)
+    public var menuFixLayout: Bool
+
+    /// Message menu: add the text to the chat note.
+    @UserDefault(key: Keys.menuAddToNote.rawValue)
+    public var menuAddToNote: Bool
+
+    /// Message menu: copy without formatting.
+    @UserDefault(key: Keys.menuCopyPlain.rawValue)
+    public var menuCopyPlain: Bool
 
     /// Chats (peer ids) where messages are always sent without sound.
     @UserDefault(key: Keys.silentChats.rawValue)
