@@ -2171,6 +2171,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     func handleWillResignActive() {
         self.holyGramShowPrivacyBlur() // MARK: HolyGram
         HolyGramChatLocks.shared.lockAll() // MARK: HolyGram
+        HolyGramShared.publishFromApp() // MARK: HolyGram: the notification service reads this while the app is closed
         self.isActiveValue = false
         self.isActivePromise.set(false)
         self.clearNotificationsManager?.commitNow()
@@ -2288,6 +2289,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     }
 
     func handleDidBecomeActive() {
+        HolyGramShared.publishFromApp() // MARK: HolyGram
+        HolyGramDeletedIndex.reloadFromDisk() // MARK: HolyGram: messages kept by the notification service
         self.holyGramHidePrivacyBlur() // MARK: HolyGram
         self.holyGramApplyStreamerMode() // MARK: HolyGram
         HolyGramPro.shared.refresh() // MARK: HolyGram

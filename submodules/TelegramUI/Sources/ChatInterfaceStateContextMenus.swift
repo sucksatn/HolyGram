@@ -994,6 +994,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             })))
         }
         var sgActions: [ContextMenuItem] = []
+        var hgActions: [ContextMenuItem] = [] // MARK: HolyGram
 
         var isPinnedMessages = false
         if case .pinnedMessages = chatPresentationInterfaceState.subject {
@@ -1590,21 +1591,21 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         //
         // MARK: HolyGram
         if SGSimpleSettings.shared.hgShowRepeat && !message.isCopyProtected() && message.id.namespace == Namespaces.Message.Cloud && canSendMessagesToChat(chatPresentationInterfaceState) {
-            actions.append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgActions.append(sgMakeContextMenuAction(.repeatMessage(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.hgPro && message.id.namespace == Namespaces.Message.Cloud {
-            if SGSimpleSettings.shared.menuBookmark { actions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuRemind { actions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuChatStats { actions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuSaveAllMedia { actions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuTemplates && canSendMessagesToChat(chatPresentationInterfaceState) { actions.append(sgMakeContextMenuAction(.templates(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
-            if SGSimpleSettings.shared.menuExportChat && !message.isCopyProtected() { actions.append(sgMakeContextMenuAction(.exportChat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuBookmark { hgActions.append(sgMakeContextMenuAction(.bookmark(context: context), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuRemind { hgActions.append(sgMakeContextMenuAction(.remind(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuChatStats { hgActions.append(sgMakeContextMenuAction(.chatStats(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuSaveAllMedia { hgActions.append(sgMakeContextMenuAction(.saveAllMedia(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuTemplates && canSendMessagesToChat(chatPresentationInterfaceState) { hgActions.append(sgMakeContextMenuAction(.templates(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
+            if SGSimpleSettings.shared.menuExportChat && !message.isCopyProtected() { hgActions.append(sgMakeContextMenuAction(.exportChat(context: context, controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)) }
         }
         if SGSimpleSettings.shared.menuFirstMessage && SGSimpleSettings.shared.hgPro, case .peer = chatPresentationInterfaceState.chatLocation, message.id.namespace == Namespaces.Message.Cloud {
-            actions.append(sgMakeContextMenuAction(.firstMessage(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgActions.append(sgMakeContextMenuAction(.firstMessage(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         if SGSimpleSettings.shared.menuEditHistory && !message.holyGramEditHistory.isEmpty {
-            actions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
+            hgActions.append(sgMakeContextMenuAction(.editHistory(controllerInteraction: controllerInteraction), chatPresentationInterfaceState: chatPresentationInterfaceState, message: message))
         }
         //
         
@@ -2299,7 +2300,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
             canViewStats = canViewReadStats(message: message, participantCount: infoSummaryData.participantCount, isMessageRead: isMessageRead, isPremium: isPremium, appConfig: appConfig)
         }
 
-        sgInsertContextMenu(actions: &actions, sgActions: &sgActions, index: sgActionsIndex, chatPresentationInterfaceState: chatPresentationInterfaceState) // MARK: Swiftgram
+        sgInsertContextMenu(actions: &actions, sgActions: &sgActions, hgActions: hgActions, index: sgActionsIndex, chatPresentationInterfaceState: chatPresentationInterfaceState) // MARK: Swiftgram
         
         var reactionCount = 0
         for reaction in mergedMessageReactionsAndPeers(accountPeerId: context.account.peerId, accountPeer: nil, message: message).reactions {

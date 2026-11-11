@@ -606,6 +606,15 @@ struct ChatListContactPeer {
 }
 
 func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool) -> (entries: [ChatListNodeEntry], loading: Bool) {
+    // MARK: HolyGram: read the hidden chats once per list, not once per chat
+    let holyGramHiddenChats: Set<Int64> = {
+        let settings = SGSimpleSettings.shared
+        let list = settings.hiddenChats
+        if list.isEmpty || !settings.hgPro {
+            return []
+        }
+        return Set(list.compactMap(Int64.init))
+    }()
     var groupItems = view.groupItems
     if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {
         groupItems.append(EngineChatList.GroupItem(
@@ -688,7 +697,7 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
             continue loop
         }
         // MARK: HolyGram: hidden chats are listed only in HolyGram settings
-        if case .chatList = entry.index, let peerId = peerId, SGSimpleSettings.shared.isHiddenChat(peerId.toInt64()) {
+        if !holyGramHiddenChats.isEmpty, case .chatList = entry.index, let peerId = peerId, holyGramHiddenChats.contains(peerId.toInt64()) {
             continue loop
         }
         var updatedMessages = entry.messages

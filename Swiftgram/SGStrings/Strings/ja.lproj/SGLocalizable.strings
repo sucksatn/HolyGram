@@ -84,7 +84,7 @@
 "Common.RestartNow" = "今すぐ再実行";
 "Common.OpenTelegram" = "Telegram を開く";
 "Common.UseTelegramForPremium" = "Telegram Premiumを登録するには、公式のTelegramアプリが必要です。
-登録すると、Swiftgram等の非公式アプリ含め、Telegram Premiumをサポートする全てのアプリでプレミアムメソッドを利用できます。";
+登録すると、HolyGram等の非公式アプリ含め、Telegram Premiumをサポートする全てのアプリでプレミアムメソッドを利用できます。";
 "Common.UpdateOS" = "iOSの更新が必要です";
 
 "Message.HoldToShowOrReport" = "表示または報告するために押し続ける。";

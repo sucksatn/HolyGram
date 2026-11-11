@@ -175,7 +175,7 @@ private enum DebugLogAction {
         switch self {
         case .sendLogs: return "Logs"
         case .sendOneLog: return "Latest Logs"
-        case .sgSendLogs: return "Swiftgram Logs" // MARK: Swiftgram
+        case .sgSendLogs: return "HolyGram Logs" // MARK: Swiftgram
         case .sendShareLogs: return "Share Logs"
         case .sendGroupCallLogs: return "Group Call Logs"
         case .sendNotificationLogs: return "Notification Logs"
