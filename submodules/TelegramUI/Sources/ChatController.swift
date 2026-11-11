@@ -244,6 +244,8 @@ struct ScrolledToMessageId: Equatable {
 public final class ChatControllerImpl: TelegramBaseController, ChatController, GalleryHiddenMediaTarget, UIDropInteractionDelegate {    
     // MARK: HolyGram: "send this?" confirmation for stickers, GIFs and voice messages
     var holyGramSkipSendConfirmation = false
+    // MARK: HolyGram: text messages wait a few seconds with an Undo button
+    var holyGramSendingAfterUndoDelay = false
     
     func holyGramConfirmSend(kind: String, send: @escaping () -> Void) {
         let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
@@ -9302,6 +9304,44 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     }
     
     func sendMessages(_ messages: [EnqueueMessage], media: Bool = false, postpone: Bool = false, commit: Bool = false) {
+        // MARK: HolyGram: undo send
+        let undoDelay = SGSimpleSettings.shared.hgUndoSendDelay
+        if undoDelay > 0, !self.holyGramSendingAfterUndoDelay, !commit, !postpone, self.presentationInterfaceState.subject == nil, !messages.isEmpty {
+            var texts: [String] = []
+            let textOnly = messages.allSatisfy { message in
+                if case let .message(text, attributes, _, mediaReference, _, _, _, _, _, _) = message, mediaReference == nil, !text.isEmpty, !attributes.contains(where: { $0 is OutgoingScheduleInfoMessageAttribute }) {
+                    texts.append(text)
+                    return true
+                }
+                return false
+            }
+            if textOnly {
+                let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+                var cancelled = false
+                self.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Сообщение отправится через \(undoDelay) сек." : "Sending in \(undoDelay) s.", timeout: Double(undoDelay), customUndoText: ru ? "Отменить" : "Undo"), elevatedLayout: false, action: { [weak self] action in
+                    if case .undo = action {
+                        cancelled = true
+                        UIPasteboard.general.string = texts.joined(separator: "\n")
+                        if let self {
+                            let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+                            self.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ru ? "Отправка отменена. Текст скопирован." : "Sending cancelled. The text was copied.", timeout: 3.0, customUndoText: nil), elevatedLayout: false, action: { _ in return false }), in: .current)
+                        }
+                    }
+                    return false
+                }), in: .current)
+                Queue.mainQueue().after(Double(undoDelay)) { [weak self] in
+                    guard let self, !cancelled else {
+                        return
+                    }
+                    self.holyGramSendingAfterUndoDelay = true
+                    self.sendMessages(messages, media: media, postpone: postpone, commit: commit)
+                    self.holyGramSendingAfterUndoDelay = false
+                }
+                return
+            }
+        }
+        //
         if case let .customChatContents(customChatContents) = self.subject {
             customChatContents.enqueueMessages(messages: messages)
             return

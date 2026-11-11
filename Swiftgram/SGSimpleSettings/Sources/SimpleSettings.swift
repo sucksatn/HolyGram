@@ -143,6 +143,7 @@ public class SGSimpleSettings {
         case chatListMarkers
         case ghostShortcut
         case lockedAccounts
+        case undoSendDelay
         case profileNote
         case showNoteOnOpen
         case muteNewChannels
@@ -369,6 +370,7 @@ public class SGSimpleSettings {
         Keys.chatListMarkers.rawValue: true,
         Keys.ghostShortcut.rawValue: true,
         Keys.lockedAccounts.rawValue: [String](),
+        Keys.undoSendDelay.rawValue: Int32(0),
         Keys.profileNote.rawValue: true,
         Keys.showNoteOnOpen.rawValue: true,
         Keys.muteNewChannels.rawValue: false,
@@ -627,6 +629,11 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// Seconds a text message waits with an Undo button before it is sent; 0 sends right away.
+    @UserDefault(key: Keys.undoSendDelay.rawValue)
+    public var undoSendDelay: Int32
+    public var hgUndoSendDelay: Int32 { hgPro ? undoSendDelay : 0 }
 
     /// Accounts that ask for Face ID when you switch to them (account record ids).
     @UserDefault(key: Keys.lockedAccounts.rawValue)

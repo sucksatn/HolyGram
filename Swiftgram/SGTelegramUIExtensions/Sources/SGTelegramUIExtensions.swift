@@ -1239,8 +1239,39 @@ func sgInsertContextMenu(actions: inout [ContextMenuItem], sgActions: inout [Con
     }
 }
 
+/// MARK: HolyGram: the HolyGram submenu, split into sections so every list fits on screen
+/// (context menu lists don't scroll). With few items they stay one flat list.
+func sgHolyGramSections(_ groups: [String: [ContextMenuItem]], chatPresentationInterfaceState: ChatPresentationInterfaceState) -> [ContextMenuItem] {
+    let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+    let order: [(String, String, String)] = [
+        ("send", ru ? "Отправка" : "Sending", "paperplane"),
+        ("copy", ru ? "Копировать и сохранить" : "Copy & Save", "square.and.arrow.down.on.square"),
+        ("tools", ru ? "Инфо и инструменты" : "Info & Tools", "wrench.and.screwdriver")
+    ]
+    let total = groups.values.reduce(0) { $0 + $1.count }
+    if total <= 7 {
+        return order.flatMap { groups[$0.0] ?? [] }
+    }
+    var result: [ContextMenuItem] = []
+    for (key, title, symbol) in order {
+        guard let items = groups[key], !items.isEmpty else {
+            continue
+        }
+        if items.count == 1 {
+            result.append(contentsOf: items)
+            continue
+        }
+        if let menu = sgMakeSubMenu(title: "\(title) (\(items.count))", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: symbol), color: theme.actionSheet.primaryTextColor)
+        }, items: items, chatPresentationInterfaceState: chatPresentationInterfaceState) {
+            result.append(menu)
+        }
+    }
+    return result
+}
+
 /// A context menu row that opens `items` as a submenu with a Back row on top.
-private func sgMakeSubMenu(title: String, icon: @escaping (PresentationTheme) -> UIImage?, items: [ContextMenuItem], chatPresentationInterfaceState: ChatPresentationInterfaceState) -> ContextMenuItem? {
+func sgMakeSubMenu(title: String, icon: @escaping (PresentationTheme) -> UIImage?, items: [ContextMenuItem], chatPresentationInterfaceState: ChatPresentationInterfaceState) -> ContextMenuItem? {
     guard !items.isEmpty else {
         return nil
     }
