@@ -140,6 +140,8 @@ public class SGSimpleSettings {
         case outgoingSignature
         case menuScheduleRepeat
         case hidePrivateNotifications
+        case chatListMarkers
+        case profileNote
         case showNoteOnOpen
         case muteNewChannels
         case menuSaveFile
@@ -362,6 +364,8 @@ public class SGSimpleSettings {
         Keys.outgoingSignature.rawValue: "",
         Keys.menuScheduleRepeat.rawValue: true,
         Keys.hidePrivateNotifications.rawValue: true,
+        Keys.chatListMarkers.rawValue: true,
+        Keys.profileNote.rawValue: true,
         Keys.showNoteOnOpen.rawValue: true,
         Keys.muteNewChannels.rawValue: false,
         Keys.menuSaveFile.rawValue: true,
@@ -619,6 +623,14 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// 🔒 📒 🔕 after chat titles in the chat list.
+    @UserDefault(key: Keys.chatListMarkers.rawValue)
+    public var chatListMarkers: Bool
+
+    /// The HolyGram note row in user and chat profiles.
+    @UserDefault(key: Keys.profileNote.rawValue)
+    public var profileNote: Bool
 
     /// Opening a chat with a HolyGram note shows the note for a moment.
     @UserDefault(key: Keys.showNoteOnOpen.rawValue)

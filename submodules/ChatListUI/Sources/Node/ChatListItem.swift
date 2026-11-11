@@ -3338,7 +3338,9 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                         if case let .channel(channel) = itemPeer.peer, channel.flags.contains(.isMonoforum) {
                             titleBadgeText = item.presentationData.strings.ChatList_MonoforumLabel
                         }
-                        titleAttributedString = NSAttributedString(string: displayTitle, font: titleFont, textColor: textColor)
+                        // MARK: HolyGram: 🔒 locked, 📒 has a note, 🔕 always silent
+                        let holyGramMarkers = holyGramChatListMarkers(peerId: itemPeer.chatOrMonoforumMainPeer?.id)
+                        titleAttributedString = NSAttributedString(string: holyGramMarkers.isEmpty ? displayTitle : displayTitle + " " + holyGramMarkers, font: titleFont, textColor: textColor)
                     }
                 case .group:
                     titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_ArchivedChatsTitle, font: titleFont, textColor: theme.titleColor)
@@ -6016,4 +6018,27 @@ private class StarView: UIView {
         self.outline.frame = self.bounds
         self.foreground.frame = self.bounds
     }
+}
+
+// MARK: HolyGram: small markers after a chat's title in the list
+private func holyGramChatListMarkers(peerId: EnginePeer.Id?) -> String {
+    guard let peerId else {
+        return ""
+    }
+    let settings = SGSimpleSettings.shared
+    guard settings.chatListMarkers && settings.hgPro else {
+        return ""
+    }
+    let value = peerId.toInt64()
+    var markers = ""
+    if settings.isLockedChat(value) {
+        markers += "🔒"
+    }
+    if !HolyGramNotes.isEmpty, HolyGramNotes.note(peerId: value) != nil {
+        markers += "📒"
+    }
+    if !settings.alwaysSilent && settings.isSilentChat(value) {
+        markers += "🔕"
+    }
+    return markers
 }

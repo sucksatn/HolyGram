@@ -128,6 +128,54 @@ func sgPeerInfoProfileItems(nearestChatParticipant: (String?, Int32?), data: Pee
         items.append(PeerInfoScreenLabeledValueItem(id: itemId, label: i18n("MutualContact.Label", presentationData.strings.baseLanguageCode), text: "", action: nil, longTapAction: { _ in }, requestLayout: { _ in
             interaction.requestLayout(false)
         }))
+        itemId += 1
+    }
+
+    // MARK: HolyGram: a contact who hasn't added you back, and your private note about the chat
+    let ru = presentationData.strings.baseLanguageCode.hasPrefix("ru") || presentationData.strings.baseLanguageCode.hasPrefix("uk")
+    if SGSimpleSettings.shared.hgPro, !isMyProfile, case let .user(user) = data.peer, user.botInfo == nil, data.isContact, !isMutualContact {
+        items.append(PeerInfoScreenLabeledValueItem(id: itemId, label: ru ? "💔 Не добавил(а) вас в контакты" : "💔 Hasn't added you back", text: "", action: nil, longTapAction: { _ in }, requestLayout: { _ in
+            interaction.requestLayout(false)
+        }))
+        itemId += 1
+    }
+    if SGSimpleSettings.shared.profileNote && SGSimpleSettings.shared.hgPro && !isMyProfile, let peerId = data.peer?.id {
+        let peerIdValue = peerId.toInt64()
+        let note = HolyGramNotes.note(peerId: peerIdValue)
+        let edit: () -> Void = {
+            guard var presenter = UIApplication.shared.connectedScenes.compactMap({ ($0 as? UIWindowScene)?.keyWindow }).first?.rootViewController else {
+                return
+            }
+            while let presented = presenter.presentedViewController {
+                presenter = presented
+            }
+            let alert = UIAlertController(title: ru ? "Заметка" : "Note", message: ru ? "Видна только вам и хранится на этом устройстве." : "Only you can see it; it stays on this device.", preferredStyle: .alert)
+            alert.addTextField { field in
+                field.text = HolyGramNotes.note(peerId: peerIdValue)
+                field.placeholder = ru ? "Текст заметки" : "Note text"
+                field.autocapitalizationType = .sentences
+            }
+            alert.addAction(UIAlertAction(title: presentationData.strings.Common_Cancel, style: .cancel))
+            alert.addAction(UIAlertAction(title: ru ? "Сохранить" : "Save", style: .default, handler: { [weak alert] _ in
+                HolyGramNotes.setNote(peerId: peerIdValue, text: alert?.textFields?.first?.text ?? "")
+                interaction.requestLayout(true)
+            }))
+            presenter.present(alert, animated: true)
+        }
+        if let note {
+            items.append(PeerInfoScreenLabeledValueItem(id: itemId, label: ru ? "📒 Заметка (нажмите, чтобы изменить)" : "📒 Note (tap to edit)", text: note, textColor: .primary, action: { _, _ in
+                edit()
+            }, longTapAction: { sourceNode in
+                interaction.openPeerInfoContextMenu(.copy(note), sourceNode, nil)
+            }, requestLayout: { _ in
+                interaction.requestLayout(false)
+            }))
+        } else {
+            items.append(PeerInfoScreenActionItem(id: itemId, text: ru ? "📒 Добавить заметку" : "📒 Add Note", color: .accent, action: {
+                edit()
+            }))
+        }
+        itemId += 1
     }
 
     return items

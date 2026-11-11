@@ -77,6 +77,8 @@ private enum SGBoolSetting: String {
     case menuMessageCard
     case menuScheduleRepeat
     case hidePrivateNotifications
+    case chatListMarkers
+    case profileNote
     case showNoteOnOpen
     case muteNewChannels
     case menuSaveFile
@@ -423,6 +425,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyId, value: settings.menuCopyId, text: ru ? "#️⃣  Скопировать ID и ссылку" : "#️⃣  Copy ID and Link", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuDeleteMine, value: settings.menuDeleteMine, text: ru ? "🗑  Удалить все мои сообщения" : "🗑  Delete All My Messages", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatNote, value: settings.menuChatNote, text: ru ? "📒  Заметка о чате" : "📒  Chat Note", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .profileNote, value: settings.profileNote, text: ru ? "📒  Заметка в профиле" : "📒  Note in Profiles", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .chatListMarkers, value: settings.chatListMarkers, text: ru ? "🔒📒🔕  Значки у чатов в списке" : "🔒📒🔕  Markers in the Chat List", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .showNoteOnOpen, value: settings.showNoteOnOpen, text: ru ? "📒  Показывать заметку при открытии чата" : "📒  Show the Note When a Chat Opens", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuClearCache, value: settings.menuClearCache, text: ru ? "🧹  Очистить кеш чата" : "🧹  Clear Chat Cache", enabled: true))
     entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ СООБЩЕНИЯ (ДОЛГОЕ НАЖАТИЕ НА СООБЩЕНИЕ)" : "MESSAGE MENU (LONG-PRESS A MESSAGE)", badge: nil))
@@ -791,6 +795,10 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             HolyGramShared.publishFromApp()
         case .showNoteOnOpen:
             SGSimpleSettings.shared.showNoteOnOpen = value
+        case .chatListMarkers:
+            SGSimpleSettings.shared.chatListMarkers = value
+        case .profileNote:
+            SGSimpleSettings.shared.profileNote = value
         case .muteNewChannels:
             SGSimpleSettings.shared.muteNewChannels = value
         case .menuSaveFile:
