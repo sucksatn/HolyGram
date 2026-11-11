@@ -69,6 +69,11 @@ private enum SGBoolSetting: String {
     case menuFirstMessage
     case menuTemplates
     case menuChatNote
+    case menuMessageInfo
+    case menuSpeak
+    case menuCopyWithAuthor
+    case menuWriteAuthor
+    case menuMessageCard
     // MARK: HolyGram ghost mode
     case ghostMode
     case ghostHideOnline
@@ -407,6 +412,11 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuTemplates, value: settings.menuTemplates, text: ru ? "🗒  Шаблоны" : "🗒  Templates", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuExportChat, value: settings.menuExportChat, text: ru ? "📤  Экспорт чата в текст" : "📤  Export Chat as Text", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuFirstMessage, value: settings.menuFirstMessage, text: ru ? "⏮  К началу чата" : "⏮  Go to First Message", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuMessageInfo, value: settings.menuMessageInfo, text: ru ? "ℹ️  Подробности" : "ℹ️  Details", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSpeak, value: settings.menuSpeak, text: ru ? "🔊  Озвучить" : "🔊  Read Aloud", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyWithAuthor, value: settings.menuCopyWithAuthor, text: ru ? "📋  Копировать с автором" : "📋  Copy with Author", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuWriteAuthor, value: settings.menuWriteAuthor, text: ru ? "✉️  Написать автору" : "✉️  Message Author", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuMessageCard, value: settings.menuMessageCard, text: ru ? "🖼  Картинка сообщения" : "🖼  Message as Image", enabled: true))
     entries.append(.notice(id: id.count, section: .holyGramMenus, text: ru ? "Выключенные пункты не показываются в меню. Функции Pro появляются в меню только с HolyGram Pro." : "Turned-off items don't appear in menus. Pro items appear only with HolyGram Pro."))
 
     // 🧰 Tools
@@ -422,6 +432,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramNotes, text: (ru ? "📒  Заметки о чатах" : "📒  Chat Notes") + lock))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgArchiveInactive"), text: "📦  " + i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgReadAll"), text: (ru ? "✅  Прочитать все чаты" : "✅  Mark All Chats as Read") + lock, kind: .generic))
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgExportData"), text: (ru ? "📤  Экспорт закладок, заметок и шаблонов" : "📤  Export Bookmarks, Notes & Templates") + lock, kind: .generic))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgMuteChannels"), text: (ru ? "🔇  Выключить звук всех каналов" : "🔇  Mute All Channels") + lock, kind: .generic))
 
     entries.append(.header(id: id.count, section: .tabs, text: i18n("Settings.Tabs.Header", lang), badge: nil))
@@ -727,6 +738,16 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.menuTemplates = value
         case .menuChatNote:
             SGSimpleSettings.shared.menuChatNote = value
+        case .menuMessageInfo:
+            SGSimpleSettings.shared.menuMessageInfo = value
+        case .menuSpeak:
+            SGSimpleSettings.shared.menuSpeak = value
+        case .menuCopyWithAuthor:
+            SGSimpleSettings.shared.menuCopyWithAuthor = value
+        case .menuWriteAuthor:
+            SGSimpleSettings.shared.menuWriteAuthor = value
+        case .menuMessageCard:
+            SGSimpleSettings.shared.menuMessageCard = value
         case .hideSponsoredMessages:
             SGSimpleSettings.shared.hideSponsoredMessages = value
         case .streamerMode:
@@ -1120,6 +1141,66 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 simplePromise.set(true)
             }))
             hgTopViewController()?.present(alert, animated: true)
+            return
+        }
+        // MARK: HolyGram: bookmarks, chat notes and templates as one text file
+        if actionType == AnyHashable("hgExportData") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            let notes = HolyGramNotes.all()
+            let bookmarks = HolyGramBookmarks.entries()
+            let noteIds = notes.map { EnginePeer.Id($0.peerId) }
+            let bookmarkIds = bookmarks.map { EngineMessage.Id(peerId: EnginePeer.Id($0.0), namespace: $0.1, id: $0.2) }
+            let _ = (combineLatest(
+                context.engine.data.get(EngineDataMap(noteIds.map(TelegramEngine.EngineData.Item.Peer.Peer.init))),
+                context.engine.data.get(EngineDataMap(bookmarkIds.map(TelegramEngine.EngineData.Item.Messages.Message.init)))
+            )
+            |> deliverOnMainQueue).start(next: { peers, messages in
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                let formatter = DateFormatter()
+                formatter.dateFormat = "dd.MM.yyyy HH:mm"
+                var lines: [String] = []
+                lines.append(ru ? "== Закладки ==" : "== Bookmarks ==")
+                for id in bookmarkIds {
+                    guard let message = messages[id] ?? nil else {
+                        continue
+                    }
+                    let chat = message.peers[message.id.peerId].flatMap { EnginePeer($0).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder) } ?? ""
+                    let author = message.author?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder) ?? ""
+                    let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))
+                    lines.append("[\(date)] \(chat)\(author.isEmpty || author == chat ? "" : " · " + author): \(message.text)")
+                }
+                lines.append("")
+                lines.append(ru ? "== Заметки о чатах ==" : "== Chat notes ==")
+                for note in notes {
+                    let title = (peers[EnginePeer.Id(note.peerId)] ?? nil)?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder) ?? "ID \(note.peerId)"
+                    lines.append("\(title): \(note.text)")
+                }
+                lines.append("")
+                lines.append(ru ? "== Шаблоны ==" : "== Templates ==")
+                for template in HolyGramTemplates.all() {
+                    lines.append("- " + template.replacingOccurrences(of: "\n", with: "\n  "))
+                }
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent("HolyGram-export.txt")
+                do {
+                    try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+                } catch {
+                    return
+                }
+                guard let presenter = hgTopViewController() else {
+                    return
+                }
+                let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                if let popover = activity.popoverPresentationController {
+                    popover.sourceView = presenter.view
+                    popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+                    popover.permittedArrowDirections = []
+                }
+                presenter.present(activity, animated: true)
+            })
             return
         }
         // MARK: HolyGram: mark every chat read, or mute every channel

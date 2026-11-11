@@ -152,6 +152,11 @@ public class SGSimpleSettings {
         case menuFirstMessage
         case menuTemplates
         case menuChatNote
+        case menuMessageInfo
+        case menuSpeak
+        case menuCopyWithAuthor
+        case menuWriteAuthor
+        case menuMessageCard
         case confirmVoiceSend
         case saveDeletedMessages
         case saveEditHistory
@@ -354,6 +359,11 @@ public class SGSimpleSettings {
         Keys.menuFirstMessage.rawValue: true,
         Keys.menuTemplates.rawValue: true,
         Keys.menuChatNote.rawValue: true,
+        Keys.menuMessageInfo.rawValue: true,
+        Keys.menuSpeak.rawValue: true,
+        Keys.menuCopyWithAuthor.rawValue: true,
+        Keys.menuWriteAuthor.rawValue: true,
+        Keys.menuMessageCard.rawValue: true,
         Keys.confirmVoiceSend.rawValue: false,
         Keys.saveDeletedMessages.rawValue: true,
         Keys.saveEditHistory.rawValue: true,
@@ -628,6 +638,26 @@ public class SGSimpleSettings {
     /// Chat menu: a private note about the chat.
     @UserDefault(key: Keys.menuChatNote.rawValue)
     public var menuChatNote: Bool
+
+    /// Message menu: details (ids, exact dates).
+    @UserDefault(key: Keys.menuMessageInfo.rawValue)
+    public var menuMessageInfo: Bool
+
+    /// Message menu: read aloud.
+    @UserDefault(key: Keys.menuSpeak.rawValue)
+    public var menuSpeak: Bool
+
+    /// Message menu: copy with author and date.
+    @UserDefault(key: Keys.menuCopyWithAuthor.rawValue)
+    public var menuCopyWithAuthor: Bool
+
+    /// Message menu: message the author privately.
+    @UserDefault(key: Keys.menuWriteAuthor.rawValue)
+    public var menuWriteAuthor: Bool
+
+    /// Message menu: share the message as an image.
+    @UserDefault(key: Keys.menuMessageCard.rawValue)
+    public var menuMessageCard: Bool
 
     @UserDefault(key: Keys.confirmVoiceSend.rawValue)
     public var confirmVoiceSend: Bool
