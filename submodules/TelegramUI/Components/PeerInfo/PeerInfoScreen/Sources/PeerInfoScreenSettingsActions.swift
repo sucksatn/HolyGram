@@ -54,10 +54,11 @@ extension PeerInfoScreenNode {
         }
         switch section {
         case .swiftgram:
-            self.controller?.push(sgSettingsController(context: self.context))
+            self.controller?.push(sgSettingsController(context: self.context, page: .swiftgram))
         case .swiftgramPro:
             if self.context.sharedContext.immediateSGStatus.status > 1 {
-                self.controller?.push(self.context.sharedContext.makeSGProController(context: self.context))
+                // MARK: HolyGram: HolyGram Pro opens the hub (subscription, ghost mode, backups…)
+                self.controller?.push(sgSettingsController(context: self.context, page: .root))
             } else {
                 if let payWallController = self.context.sharedContext.makeSGPayWallController(context: self.context) {
                     self.controller?.present(payWallController, in: .window(.root), with: ViewControllerPresentationArguments(presentationAnimation: .modalSheet))

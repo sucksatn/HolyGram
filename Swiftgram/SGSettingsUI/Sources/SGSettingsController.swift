@@ -22,6 +22,7 @@ import AppBundle
 import WebKit
 import PeerNameColorScreen
 import UndoUI
+import SGProUI
 
 
 private enum SGControllerSection: Int32, SGItemListSection {
@@ -176,6 +177,8 @@ private enum SGDisclosureLink: String {
     case pageMenus // MARK: HolyGram
     case pageTools // MARK: HolyGram
     case pageSwiftgram // MARK: HolyGram
+    case pageBackup // MARK: HolyGram
+    case pageMorePro // MARK: HolyGram
     case holyGramNotes // MARK: HolyGram
     case holyGramTemplates // MARK: HolyGram
     case holyGramHiddenChats // MARK: HolyGram
@@ -230,7 +233,7 @@ public enum HolyGramSettingsPage: String {
     fileprivate func title(_ ru: Bool) -> String {
         switch self {
         case .root:
-            return "HolyGram"
+            return "HolyGram Pro"
         case .ghost:
             return ru ? "Режим призрака" : "Ghost Mode"
         case .history:
@@ -242,7 +245,7 @@ public enum HolyGramSettingsPage: String {
         case .tools:
             return ru ? "Инструменты" : "Tools"
         case .swiftgram:
-            return ru ? "Функции Swiftgram" : "Swiftgram Features"
+            return "HolyGram"
         }
     }
 }
@@ -333,7 +336,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pagePrivacy, text: "🔐  " + (ru ? "Конфиденциальность" : "Privacy")))
     entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageMenus, text: "💬  " + (ru ? "Меню чатов и сообщений" : "Chat & Message Menus")))
     entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageTools, text: "🧰  " + (ru ? "Инструменты" : "Tools")))
-    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageSwiftgram, text: "⚙️  " + (ru ? "Функции Swiftgram" : "Swiftgram Features")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageBackup, text: "🗄  " + (ru ? "Бэкап и перенос аккаунтов" : "Account Backup & Transfer")))
+    entries.append(.disclosure(id: id.count, section: .holyGramNav, link: .pageMorePro, text: "✨  " + (ru ? "Ещё: фильтр, панель ввода, значки, иконки" : "More: Filter, Input Toolbar, Badges, Icons")))
     entries.append(.notice(id: id.count, section: .holyGramNav, text: ru ? "Функции с 🔒 работают с HolyGram Pro." : "Features marked 🔒 need HolyGram Pro."))
 
     // 👻 Ghost mode (can be switched off for everyone from the admin bot)
@@ -602,6 +606,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
 public func sgSettingsController(context: AccountContext, page: HolyGramSettingsPage = .root/*, focusOnItemTag: Int? = nil*/) -> ViewController {
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
+    var hgNavigationControllerImpl: (() -> NavigationController?)?
 //    var getRootControllerImpl: (() -> UIViewController?)?
 //    var getNavigationControllerImpl: (() -> NavigationController?)?
     var askForRestart: (() -> Void)?
@@ -1073,8 +1078,14 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 pushControllerImpl?(sgSettingsController(context: context, page: .tools))
             case .pageSwiftgram:
                 pushControllerImpl?(sgSettingsController(context: context, page: .swiftgram))
+            case .pageBackup:
+                pushControllerImpl?(sgSessionBackupManagerController(context: context))
+            case .pageMorePro:
+                pushControllerImpl?(sgProController(context: context))
             case .holyGramProContact:
-                context.sharedContext.applicationBindings.openUrl(HolyGramPro.shared.botRequestUrl)
+                // Open the bot inside the app, not in the browser
+                let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+                context.sharedContext.openExternalUrl(context: context, urlContext: .generic, url: HolyGramPro.shared.botRequestUrl, forceExternal: false, presentationData: presentationData, navigationController: hgNavigationControllerImpl?(), dismissInput: {})
             case .languageSettings:
                 pushControllerImpl?(context.sharedContext.makeLocalizationListController(context: context))
             case .contentSettings:
@@ -1258,6 +1269,9 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
     let controller = ItemListController(context: context, state: signal)
     presentControllerImpl = { [weak controller] c, a in
         controller?.present(c, in: .window(.root), with: a)
+    }
+    hgNavigationControllerImpl = { [weak controller] in
+        return controller?.navigationController as? NavigationController
     }
     pushControllerImpl = { [weak controller] c in
         (controller?.navigationController as? NavigationController)?.pushViewController(c)

@@ -837,8 +837,8 @@
 "BroadcastListInfo.AddRecipient" = "Add Recipient";
 
 "Settings.LogoutConfirmationTitle" = "Log out?";
-"Settings.LogoutConfirmationText" = "\nNote that you can seamlessly use Swiftgram/Telegram on all your devices at once.\n\nRemember, logging out kills all your Secret Chats."; // MARK: Swiftgram
-"Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use Swiftgram/Telegram on all your devices at once and use several accounts in the same app."; // MARK: Swiftgram
+"Settings.LogoutConfirmationText" = "\nNote that you can seamlessly use HolyGram/Telegram on all your devices at once.\n\nRemember, logging out kills all your Secret Chats."; // MARK: HolyGram
+"Settings.LogoutConfirmationTextWithWallets" = "This will cancel all your Secret Chats and **delete wallet backups holding %@**. You will lose access to these funds if you haven't saved their recovery phrases.\n\nYou can use HolyGram/Telegram on all your devices at once and use several accounts in the same app."; // MARK: HolyGram
 
 "Login.PadPhoneHelp" = "\nYou can use your main mobile number to log in to HolyGram on all devices.\nDon't use your iPad's SIM number here — we'll need to send you an SMS.\n\nIs this number correct?\n{number}";
 "Login.PadPhoneHelpTitle" = "Your Number";
@@ -4000,10 +4000,10 @@ Unused sets are archived when you add more.";
 
 "AttachmentMenu.WebSearch" = "Web Search";
 
-"Conversation.UnsupportedMediaPlaceholder" = "This message is not supported on your version of Swiftgram. Please update to the latest version."; // MARK: Swiftgram
-"Conversation.UpdateTelegram" = "UPDATE SWIFTGRAM"; // MARK: Swiftgram
+"Conversation.UnsupportedMediaPlaceholder" = "This message is not supported on your version of HolyGram. Please update to the latest version."; // MARK: HolyGram
+"Conversation.UpdateTelegram" = "UPDATE HOLYGRAM"; // MARK: HolyGram
 "Conversation.UnsupportedMedia.Title" = "Unsupported message";
-"Conversation.UnsupportedMedia.Text" = "Update Swiftgram to view this message"; // MARK: Swiftgram
+"Conversation.UnsupportedMedia.Text" = "Update HolyGram to view this message"; // MARK: HolyGram
 "Conversation.UnsupportedMedia.Action" = "Update";
 
 "Cache.LowDiskSpaceText" = "Your phone has run out of available storage. Please free some space to download or upload media.";
@@ -4447,7 +4447,7 @@ Unused sets are archived when you add more.";
 
 "Undo.ChatDeletedForBothSides" = "Chat deleted for both sides";
 
-"AppUpgrade.Running" = "Optimizing Swiftgram...
+"AppUpgrade.Running" = "Optimizing HolyGram...
 This may take a while, depending on the size of the database. Please keep the app open until the process is finished.
 
 Sorry for the inconvenience.";
@@ -7567,7 +7567,7 @@ Sorry for the inconvenience.";
 "WebApp.RemoveConfirmationText" = "Remove **%@** from the attachment menu?";
 
 "Notifications.SystemTones" = "SYSTEM TONES";
-"Notifications.TelegramTones" = "SWIFTGRAM TONES";
+"Notifications.TelegramTones" = "HOLYGRAM TONES";
 
 "Notifications.UploadSound" = "Upload Sound";
 "Notifications.MessageSoundInfo" = "Press and hold a short voice note or mp3 file in any chat and select \"Save for Notifications\". It will appear here.";

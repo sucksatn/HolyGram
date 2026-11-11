@@ -907,7 +907,12 @@ extension SGSimpleSettings {
     /// Stories are viewed without the author seeing it.
     public var ghostBlocksStoryViews: Bool { ghostActive && ghostNoStoryViews }
 
-    public var hgSaveDeletedMessages: Bool { saveDeletedMessages && hgDeletedAvailable && hgPro }
+    public var hgSaveDeletedMessages: Bool {
+        if HolyGramShared.isAppExtension {
+            return HolyGramShared.keepDeletedInExtensions
+        }
+        return saveDeletedMessages && hgDeletedAvailable && hgPro
+    }
     public var hgSaveEditHistory: Bool { saveEditHistory && hgEditsAvailable && hgPro }
     public var hgKeepSelfDestructingMedia: Bool { keepSelfDestructingMedia && hgSelfDestructAvailable && hgPro }
     public var hgHideSponsoredMessages: Bool { hideSponsoredMessages && hgPro }

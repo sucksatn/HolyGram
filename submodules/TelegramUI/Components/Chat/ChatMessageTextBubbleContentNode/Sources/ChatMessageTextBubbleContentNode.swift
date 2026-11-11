@@ -1850,10 +1850,15 @@ extension ChatMessageTextBubbleContentNode: ChatMessageQuoteSourceContentNode {
 // MARK: HolyGram: highlight the user's keywords (e.g. their name) in message text
 private func holyGramHighlightKeywords(_ text: NSAttributedString) -> NSAttributedString {
     let settings = SGSimpleSettings.shared
+    // Cheap checks first: most people have no keywords set
+    let rawKeywords = settings.highlightKeywords
+    if rawKeywords.isEmpty || text.length == 0 {
+        return text
+    }
     guard settings.hgPro else {
         return text
     }
-    let keywords = settings.highlightKeywords.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 2 }
+    let keywords = rawKeywords.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { $0.count >= 2 }
     if keywords.isEmpty {
         return text
     }

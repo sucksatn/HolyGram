@@ -49,7 +49,7 @@ func sgHandleInternalUrlRoute(context: AccountContext, parsedUrl: URL, navigatio
         navigationController?.pushViewController(sgDebugController(context: context))
         return true
     case "settings":
-        navigationController?.pushViewController(sgSettingsController(context: context))
+        navigationController?.pushViewController(sgSettingsController(context: context, page: .swiftgram))
         return true
     case "ios_settings":
         context.sharedContext.applicationBindings.openSettings()
@@ -627,36 +627,53 @@ func sgMakeSelectFromUserContextMenuAction(context: AccountContext, chatPresenta
     }))
 }
 
-func sgInsertContextMenu(actions: inout [ContextMenuItem], sgActions: inout [ContextMenuItem], index: Int?, chatPresentationInterfaceState: ChatPresentationInterfaceState) {
-    guard !sgActions.isEmpty else {
+func sgInsertContextMenu(actions: inout [ContextMenuItem], sgActions: inout [ContextMenuItem], hgActions: [ContextMenuItem] = [], index: Int?, chatPresentationInterfaceState: ChatPresentationInterfaceState) {
+    let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+    // MARK: HolyGram: HolyGram's items get their own submenu next to the original one
+    var subMenus: [ContextMenuItem] = []
+    if let menu = sgMakeSubMenu(title: "HolyGram", icon: { theme in
+        return generateTintedImage(image: UIImage(systemName: "sparkles"), color: theme.actionSheet.primaryTextColor)
+    }, items: hgActions, chatPresentationInterfaceState: chatPresentationInterfaceState) {
+        subMenus.append(menu)
+    }
+    if let menu = sgMakeSubMenu(title: ru ? "Ещё" : "More", icon: { theme in
+        return generateTintedImage(image: UIImage(bundleImageName: "SwiftgramContextMenu"), color: theme.actionSheet.primaryTextColor)
+    }, items: sgActions, chatPresentationInterfaceState: chatPresentationInterfaceState) {
+        subMenus.append(menu)
+    }
+    guard !subMenus.isEmpty else {
         return
     }
+    var inserted: [ContextMenuItem] = []
     if !actions.isEmpty {
-        if let index {
-            actions.insert(.separator, at: index)
-        } else {
-            actions.append(.separator)
-        }
+        inserted.append(.separator)
     }
-    var popSGItems: (() -> Void)? = nil
-    sgActions.insert(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Common_Back, icon: { theme in
+    inserted.append(contentsOf: subMenus)
+    if let index, index <= actions.count {
+        actions.insert(contentsOf: inserted, at: index)
+    } else {
+        actions.append(contentsOf: inserted)
+    }
+}
+
+/// A context menu row that opens `items` as a submenu with a Back row on top.
+private func sgMakeSubMenu(title: String, icon: @escaping (PresentationTheme) -> UIImage?, items: [ContextMenuItem], chatPresentationInterfaceState: ChatPresentationInterfaceState) -> ContextMenuItem? {
+    guard !items.isEmpty else {
+        return nil
+    }
+    var popItems: (() -> Void)? = nil
+    var subItems = items
+    subItems.insert(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Common_Back, icon: { theme in
         return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Back"), color: theme.actionSheet.primaryTextColor)
     }, iconPosition: .left, action: { _, _ in
-        popSGItems?()
+        popItems?()
     })), at: 0)
-    sgActions.insert(.separator, at: 1)
-    let sgItems = sgActions
-    let swiftgramSubMenu: ContextMenuItem = .action(ContextMenuActionItem(text: "HolyGram", icon: { theme in
-        return generateTintedImage(image: UIImage(bundleImageName: "SwiftgramContextMenu"), color: theme.actionSheet.primaryTextColor)
-    }, action: { c, _ in
-        popSGItems = { [weak c] in
+    subItems.insert(.separator, at: 1)
+    let finalItems = subItems
+    return .action(ContextMenuActionItem(text: title, icon: icon, action: { c, _ in
+        popItems = { [weak c] in
             c?.popItems()
         }
-        c?.pushItems(items: .single(ContextController.Items(content: .list(sgItems))))
+        c?.pushItems(items: .single(ContextController.Items(content: .list(finalItems))))
     }))
-    if let index {
-        actions.insert(swiftgramSubMenu, at: index + 1)
-    } else {
-        actions.append(swiftgramSubMenu)
-    }
 }

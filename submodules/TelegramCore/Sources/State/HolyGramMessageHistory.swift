@@ -138,3 +138,12 @@ func holyGramAfterMessageSent(postbox: Postbox, network: Network, stateManager: 
         }).start()
     }
 }
+
+/// MARK: HolyGram: the notification service deletes messages when a push says they were deleted,
+/// even while the app is closed. Keep them the same way the app does.
+public func holyGramDeleteMessagesFromPush(transaction: Transaction, mediaBox: MediaBox, ids: [MessageId]) {
+    let remaining = holyGramKeepDeletedMessages(transaction: transaction, ids: ids)
+    if !remaining.isEmpty {
+        _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: remaining, deleteMedia: true)
+    }
+}

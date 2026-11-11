@@ -87,26 +87,114 @@ public enum HolyGramDeletedIndex {
         public let deletedAt: Int32
     }
 
-    private static let key = "holygram_deleted_index_v1"
+    private static let legacyKey = "holygram_deleted_index_v1"
     private static let limit = 3000
     private static let lock = NSLock()
+    private static let writeQueue = DispatchQueue(label: "holygram.deletedIndex", qos: .utility)
+    // Kept in memory and written to a file in the background: a deletion no longer rewrites
+    // the whole list in UserDefaults (which also woke every UserDefaults observer).
+    private static var loaded: [String]?
+    private static var writeScheduled = false
+
+    private static var fileURL: URL? {
+        return HolyGramShared.directory?.appendingPathComponent("holygram-deleted-index.txt")
+    }
+
+    /// Extensions append here; the app folds it into the main list when it loads.
+    private static var pendingURL: URL? {
+        return HolyGramShared.directory?.appendingPathComponent("holygram-deleted-index-pending.txt")
+    }
+
+    /// Must be called with `lock` held.
+    private static func load() -> [String] {
+        if let loaded = self.loaded {
+            return loaded
+        }
+        var list: [String] = []
+        if let url = self.fileURL, let text = try? String(contentsOf: url, encoding: .utf8) {
+            list = text.split(separator: "\n").map(String.init)
+        } else if let legacy = UserDefaults.standard.stringArray(forKey: self.legacyKey) {
+            list = legacy
+            UserDefaults.standard.removeObject(forKey: self.legacyKey)
+            self.scheduleWrite()
+        }
+        if !HolyGramShared.isAppExtension, let pendingURL = self.pendingURL, let pending = try? String(contentsOf: pendingURL, encoding: .utf8) {
+            let lines = pending.split(separator: "\n").map(String.init)
+            if !lines.isEmpty {
+                let known = Set(list)
+                list.append(contentsOf: lines.filter { !known.contains($0) })
+                if list.count > self.limit {
+                    list.removeFirst(list.count - self.limit)
+                }
+                self.scheduleWrite()
+            }
+            try? FileManager.default.removeItem(at: pendingURL)
+        }
+        self.loaded = list
+        return list
+    }
+
+    /// Picks up what the notification service kept while the app was closed.
+    public static func reloadFromDisk() {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if self.loaded != nil {
+            self.loaded = nil
+            _ = self.load()
+        }
+    }
+
+    /// Must be called with `lock` held.
+    private static func scheduleWrite() {
+        if self.writeScheduled {
+            return
+        }
+        self.writeScheduled = true
+        self.writeQueue.asyncAfter(deadline: .now() + 1.0) {
+            self.lock.lock()
+            self.writeScheduled = false
+            let snapshot = self.loaded ?? []
+            self.lock.unlock()
+            guard let url = self.fileURL else {
+                return
+            }
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? snapshot.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
 
     public static func add(peerId: Int64, namespace: Int32, id: Int32, deletedAt: Int32) {
         self.lock.lock()
         defer { self.lock.unlock() }
-        var list = UserDefaults.standard.stringArray(forKey: self.key) ?? []
+        if HolyGramShared.isAppExtension {
+            // Never rewrite the app's list from an extension: append to the pending file.
+            guard let url = self.pendingURL else {
+                return
+            }
+            let line = "\(peerId):\(namespace):\(id):\(deletedAt)\n"
+            if let handle = try? FileHandle(forWritingTo: url) {
+                handle.seekToEndOfFile()
+                handle.write(line.data(using: .utf8)!)
+                handle.closeFile()
+            } else {
+                try? line.write(to: url, atomically: true, encoding: .utf8)
+            }
+            return
+        }
+        var list = self.load()
         list.append("\(peerId):\(namespace):\(id):\(deletedAt)")
         if list.count > self.limit {
             list.removeFirst(list.count - self.limit)
         }
-        UserDefaults.standard.set(list, forKey: self.key)
+        self.loaded = list
+        self.scheduleWrite()
     }
 
     /// Newest first.
     public static func entries() -> [Entry] {
         self.lock.lock()
-        defer { self.lock.unlock() }
-        let list = UserDefaults.standard.stringArray(forKey: self.key) ?? []
+        let list = self.load()
+        self.lock.unlock()
         return list.reversed().compactMap { line -> Entry? in
             let parts = line.split(separator: ":")
             guard parts.count == 4, let peerId = Int64(parts[0]), let namespace = Int32(parts[1]), let id = Int32(parts[2]), let deletedAt = Int32(parts[3]) else {
@@ -119,7 +207,9 @@ public enum HolyGramDeletedIndex {
     public static func clear() {
         self.lock.lock()
         defer { self.lock.unlock() }
-        UserDefaults.standard.removeObject(forKey: self.key)
+        self.loaded = []
+        UserDefaults.standard.removeObject(forKey: self.legacyKey)
+        self.scheduleWrite()
     }
 }
 
