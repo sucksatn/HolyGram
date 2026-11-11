@@ -78,6 +78,7 @@ private enum SGBoolSetting: String {
     case menuScheduleRepeat
     case hidePrivateNotifications
     case chatListMarkers
+    case ghostShortcut
     case profileNote
     case showNoteOnOpen
     case muteNewChannels
@@ -373,6 +374,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoTyping, value: settings.ghostNoTyping, text: i18n("Settings.Ghost.NoTyping", lang), enabled: ghostOn))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostNoStoryViews, value: settings.ghostNoStoryViews, text: i18n("Settings.Ghost.NoStoryViews", lang), enabled: ghostOn))
         entries.append(.action(id: id.count, section: .ghost, actionType: AnyHashable("hgGhostTimer"), text: "⏱  " + (ru ? "Включить на время…" : "Turn On for a While…") + (settings.ghostMode && settings.ghostUntil != 0 && !settings.ghostTimerExpired ? (ru ? " (до " : " (until ") + DateFormatter.localizedString(from: Date(timeIntervalSince1970: TimeInterval(settings.ghostUntil)), dateStyle: .none, timeStyle: .short) + ")" : "") + lock, kind: .generic))
+        entries.append(.toggle(id: id.count, section: .ghost, settingName: .ghostShortcut, value: settings.ghostShortcut, text: ru ? "Пункт в меню иконки приложения" : "In the App Icon Menu", enabled: hasPro))
         entries.append(.toggle(id: id.count, section: .ghost, settingName: .hgShowGhostButton, value: settings.hgShowGhostButton, text: ru ? "Кнопка-глаз над чатами" : "Eye Button Above Chats", enabled: hasPro))
         entries.append(.notice(id: id.count, section: .ghost, text: i18n("Settings.Ghost.Notice", lang) + (ru ? "\n\nИсключения: удерживайте чат в списке → «Отправлять прочтение здесь».\nБыстрые команды: holygram://sg/ghost, ghost_on, ghost_off." : "\n\nExceptions: long-press a chat → Send Read Receipts Here.\nShortcuts: holygram://sg/ghost, ghost_on, ghost_off.")))
     } else {
@@ -726,6 +728,7 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
         case .ghostMode:
             SGSimpleSettings.shared.ghostMode = value
             SGSimpleSettings.shared.ghostUntil = 0
+            HolyGramShared.publishFromApp()
             simplePromise.set(true) // Trigger update for 'enabled' field of other toggles
         case .ghostHideOnline:
             SGSimpleSettings.shared.ghostHideOnline = value
@@ -797,6 +800,8 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.showNoteOnOpen = value
         case .chatListMarkers:
             SGSimpleSettings.shared.chatListMarkers = value
+        case .ghostShortcut:
+            SGSimpleSettings.shared.ghostShortcut = value
         case .profileNote:
             SGSimpleSettings.shared.profileNote = value
         case .muteNewChannels:
@@ -1232,6 +1237,7 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
                 sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
                     SGSimpleSettings.shared.ghostUntil = Int32(Date().timeIntervalSince1970) + seconds
                     SGSimpleSettings.shared.ghostMode = true
+                    HolyGramShared.publishFromApp()
                     simplePromise.set(true)
                 }))
             }

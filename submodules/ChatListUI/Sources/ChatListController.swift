@@ -7549,6 +7549,7 @@ private final class ChatListLocationContext {
                             let enabled = !(SGSimpleSettings.shared.ghostMode && !SGSimpleSettings.shared.ghostTimerExpired)
                             SGSimpleSettings.shared.ghostMode = enabled
                             SGSimpleSettings.shared.ghostUntil = 0
+                            HolyGramShared.publishFromApp()
                             let text: String
                             if enabled {
                                 text = isRussian ? "Режим призрака включён" : "Ghost mode is on"
