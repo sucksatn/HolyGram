@@ -16,6 +16,8 @@ import TelegramCore
 import TelegramPresentationData
 import UIKit
 import UserNotifications
+import AVFoundation
+import NaturalLanguage
 import SaveToCameraRoll
 import SGSimpleSettings
 import ChatControllerInteraction
@@ -125,6 +127,11 @@ enum SGContextMenuActionFactory {
     case templates(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case exportChat(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
     case firstMessage(controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case messageInfo(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case speak // MARK: HolyGram
+    case copyWithAuthor(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case writeToAuthor(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
+    case messageCard(context: AccountContext, controllerInteraction: ChatControllerInteraction) // MARK: HolyGram
 }
 
 func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) -> ContextMenuItem {
@@ -217,6 +224,64 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
                 hgExportChatText(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, peerId: message.id.peerId, ru: ru)
             }
         }))
+    case let .messageInfo(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Подробности" : "Details", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "info.circle"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgShowMessageInfo(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message, ru: ru)
+            }
+        }))
+    case .speak:
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        let speaking = HolyGramSpeech.shared.isSpeaking
+        return .action(ContextMenuActionItem(text: speaking ? (ru ? "Остановить озвучку" : "Stop Reading") : (ru ? "Озвучить" : "Read Aloud"), icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: speaking ? "stop.circle" : "speaker.wave.2"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            if speaking {
+                HolyGramSpeech.shared.stop()
+            } else {
+                HolyGramSpeech.shared.speak(message.text)
+            }
+        }))
+    case let .copyWithAuthor(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Копировать с автором" : "Copy with Author", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "doc.on.doc"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            let author = hgAuthorName(message: message, chatPresentationInterfaceState: chatPresentationInterfaceState)
+            let formatter = DateFormatter()
+            formatter.dateFormat = "dd.MM.yyyy HH:mm"
+            let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))
+            UIPasteboard.general.string = "\(author), [\(date)]:\n\(message.text)"
+            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+            controllerInteraction.presentGlobalOverlayController(UndoOverlayController(presentationData: presentationData, content: .copy(text: ru ? "Скопировано с автором и датой" : "Copied with author and date"), elevatedLayout: false, action: { _ in return false }), nil)
+        }))
+    case let .writeToAuthor(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Написать автору" : "Message Author", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "bubble.left.and.text.bubble.right"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            guard let author = message.author, let navigationController = controllerInteraction.navigationController() else {
+                return
+            }
+            context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(EnginePeer(author))))
+        }))
+    case let .messageCard(context, controllerInteraction):
+        let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
+        return .action(ContextMenuActionItem(text: ru ? "Картинка сообщения" : "Message as Image", icon: { theme in
+            return generateTintedImage(image: UIImage(systemName: "photo.on.rectangle"), color: theme.actionSheet.primaryTextColor)
+        }, action: { _, f in
+            f(.default)
+            Queue.mainQueue().after(0.3) {
+                hgShareMessageCard(context: context, controllerInteraction: controllerInteraction, chatPresentationInterfaceState: chatPresentationInterfaceState, message: message)
+            }
+        }))
     case let .firstMessage(controllerInteraction):
         let ru = chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("ru") || chatPresentationInterfaceState.strings.baseLanguageCode.hasPrefix("uk")
         return .action(ContextMenuActionItem(text: ru ? "К началу чата" : "Go to First Message", icon: { theme in
@@ -235,6 +300,184 @@ func sgMakeContextMenuAction(_ action: SGContextMenuActionFactory, chatPresentat
             }
         }))
     }
+}
+
+// MARK: HolyGram: the author's name as shown in the chat
+private func hgAuthorName(message: EngineRawMessage, chatPresentationInterfaceState: ChatPresentationInterfaceState) -> String {
+    if let author = message.author {
+        return EnginePeer(author).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder)
+    }
+    if let peer = message.peers[message.id.peerId] {
+        return EnginePeer(peer).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder)
+    }
+    return "?"
+}
+
+// MARK: HolyGram: message ids, exact dates and the original sender of a forward
+private func hgShowMessageInfo(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage, ru: Bool) {
+    guard let presenter = hgPresenter(controllerInteraction) else {
+        return
+    }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "dd.MM.yyyy HH:mm:ss"
+    let date: (Int32) -> String = { formatter.string(from: Date(timeIntervalSince1970: TimeInterval($0))) }
+    let rawPeerId = message.id.peerId.id._internalGetInt64Value()
+    var chatId = "\(rawPeerId)"
+    if message.id.peerId.namespace == Namespaces.Peer.CloudChannel {
+        chatId = "-100\(rawPeerId)"
+    } else if message.id.peerId.namespace == Namespaces.Peer.CloudGroup {
+        chatId = "-\(rawPeerId)"
+    }
+    var lines: [String] = []
+    lines.append((ru ? "ID сообщения: " : "Message ID: ") + "\(message.id.id)")
+    lines.append((ru ? "ID чата: " : "Chat ID: ") + chatId)
+    if let author = message.author {
+        lines.append((ru ? "Автор: " : "Author: ") + hgAuthorName(message: message, chatPresentationInterfaceState: chatPresentationInterfaceState) + " (ID \(author.id.id._internalGetInt64Value()))")
+    }
+    lines.append((ru ? "Отправлено: " : "Sent: ") + date(message.timestamp))
+    for attribute in message.attributes {
+        if let edited = attribute as? EditedMessageAttribute {
+            lines.append((ru ? "Изменено: " : "Edited: ") + date(edited.date))
+        }
+        if let views = attribute as? ViewCountMessageAttribute {
+            lines.append((ru ? "Просмотры: " : "Views: ") + "\(views.count)")
+        }
+        if let forwards = attribute as? ForwardCountMessageAttribute {
+            lines.append((ru ? "Пересылки: " : "Forwards: ") + "\(forwards.count)")
+        }
+    }
+    if let forwardInfo = message.forwardInfo {
+        var source = forwardInfo.authorSignature ?? ""
+        if let author = forwardInfo.author {
+            source = EnginePeer(author).displayTitle(strings: chatPresentationInterfaceState.strings, displayOrder: chatPresentationInterfaceState.nameDisplayOrder)
+        }
+        if source.isEmpty {
+            source = ru ? "скрыт" : "hidden"
+        }
+        lines.append((ru ? "Переслано от: " : "Forwarded from: ") + source)
+        lines.append((ru ? "Исходная дата: " : "Original date: ") + date(forwardInfo.date))
+    }
+    if !message.text.isEmpty {
+        lines.append((ru ? "Символов: " : "Characters: ") + "\(message.text.count)")
+    }
+    let text = lines.joined(separator: "\n")
+    let alert = UIAlertController(title: ru ? "Подробности" : "Details", message: text, preferredStyle: .alert)
+    alert.addAction(UIAlertAction(title: ru ? "Скопировать" : "Copy", style: .default, handler: { _ in
+        UIPasteboard.general.string = text
+    }))
+    alert.addAction(UIAlertAction(title: chatPresentationInterfaceState.strings.Common_OK, style: .cancel))
+    presenter.present(alert, animated: true)
+}
+
+// MARK: HolyGram: reads a message aloud in its own language
+final class HolyGramSpeech: NSObject, AVSpeechSynthesizerDelegate {
+    static let shared = HolyGramSpeech()
+    private let synthesizer = AVSpeechSynthesizer()
+    private(set) var isSpeaking = false
+
+    override init() {
+        super.init()
+        self.synthesizer.delegate = self
+    }
+
+    func speak(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return
+        }
+        self.stop()
+        let utterance = AVSpeechUtterance(string: trimmed)
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(trimmed)
+        if let language = recognizer.dominantLanguage, let voice = AVSpeechSynthesisVoice(language: language.rawValue) {
+            utterance.voice = voice
+        }
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        self.isSpeaking = true
+        self.synthesizer.speak(utterance)
+    }
+
+    func stop() {
+        if self.synthesizer.isSpeaking {
+            self.synthesizer.stopSpeaking(at: .immediate)
+        }
+        self.isSpeaking = false
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        self.isSpeaking = false
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        self.isSpeaking = false
+    }
+}
+
+// MARK: HolyGram: a message drawn as a picture card, shared from the share sheet
+private func hgShareMessageCard(context: AccountContext, controllerInteraction: ChatControllerInteraction, chatPresentationInterfaceState: ChatPresentationInterfaceState, message: EngineRawMessage) {
+    guard let presenter = hgPresenter(controllerInteraction) else {
+        return
+    }
+    let author = hgAuthorName(message: message, chatPresentationInterfaceState: chatPresentationInterfaceState)
+    var text = message.text
+    if text.count > 1500 {
+        text = String(text.prefix(1500)) + "…"
+    }
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(message.timestamp)))
+
+    let width: CGFloat = 1080.0
+    let padding: CGFloat = 72.0
+    let bubblePadding: CGFloat = 48.0
+    let textWidth = width - padding * 2.0 - bubblePadding * 2.0
+    let nameAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 44.0, weight: .semibold), .foregroundColor: UIColor(red: 0.78, green: 0.66, blue: 1.0, alpha: 1.0)]
+    let textAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 46.0), .foregroundColor: UIColor.white]
+    let footerAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 32.0), .foregroundColor: UIColor(white: 1.0, alpha: 0.55)]
+    let name = NSAttributedString(string: author, attributes: nameAttributes)
+    let body = NSAttributedString(string: text, attributes: textAttributes)
+    let footer = NSAttributedString(string: date, attributes: footerAttributes)
+    let brand = NSAttributedString(string: "HolyGram", attributes: [.font: UIFont.systemFont(ofSize: 34.0, weight: .semibold), .foregroundColor: UIColor(red: 1.0, green: 0.82, blue: 0.4, alpha: 0.9)])
+    let bound: (NSAttributedString) -> CGSize = { string in
+        return string.boundingRect(with: CGSize(width: textWidth, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil).integral.size
+    }
+    let nameSize = bound(name)
+    let bodySize = bound(body)
+    let footerSize = bound(footer)
+    let bubbleHeight = bubblePadding + nameSize.height + 16.0 + bodySize.height + 24.0 + footerSize.height + bubblePadding
+    let height = padding + bubbleHeight + 40.0 + 50.0 + padding
+
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0
+        return format
+    }())
+    let image = renderer.image { rendererContext in
+        let cg = rendererContext.cgContext
+        let colors = [UIColor(red: 0.10, green: 0.06, blue: 0.26, alpha: 1.0).cgColor, UIColor(red: 0.28, green: 0.12, blue: 0.52, alpha: 1.0).cgColor] as CFArray
+        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
+            cg.drawLinearGradient(gradient, start: CGPoint(x: 0.0, y: 0.0), end: CGPoint(x: width, y: height), options: [])
+        }
+        let bubbleRect = CGRect(x: padding, y: padding, width: width - padding * 2.0, height: bubbleHeight)
+        UIColor(white: 1.0, alpha: 0.10).setFill()
+        UIBezierPath(roundedRect: bubbleRect, cornerRadius: 44.0).fill()
+        var y = bubbleRect.minY + bubblePadding
+        name.draw(with: CGRect(x: bubbleRect.minX + bubblePadding, y: y, width: textWidth, height: nameSize.height), options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+        y += nameSize.height + 16.0
+        body.draw(with: CGRect(x: bubbleRect.minX + bubblePadding, y: y, width: textWidth, height: bodySize.height), options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+        y += bodySize.height + 24.0
+        footer.draw(at: CGPoint(x: bubbleRect.maxX - bubblePadding - footerSize.width, y: y))
+        let brandSize = brand.size()
+        brand.draw(at: CGPoint(x: (width - brandSize.width) / 2.0, y: bubbleRect.maxY + 40.0))
+    }
+    let activity = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+    if let popover = activity.popoverPresentationController {
+        popover.sourceView = presenter.view
+        popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+        popover.permittedArrowDirections = []
+    }
+    presenter.present(activity, animated: true)
 }
 
 // MARK: HolyGram: the topmost view controller of the chat's window
