@@ -1830,6 +1830,19 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         if self.activeAccountsValue?.primary?.account.id == id {
             return
         }
+        // MARK: HolyGram: accounts closed with Face ID
+        if SGSimpleSettings.shared.isLockedAccount(id.int64) && !HolyGramChatLocks.shared.isAccountUnlocked(id.int64) {
+            let ru = self.currentPresentationData.with { $0 }.strings.baseLanguageCode.hasPrefix("ru")
+            HolyGramChatLocks.authenticate(reason: ru ? "Переключиться на закрытый аккаунт" : "Switch to the locked account", completion: { [weak self, weak settingsController, weak chatListController] success in
+                guard success, let self else {
+                    return
+                }
+                HolyGramChatLocks.shared.markAccountUnlocked(id.int64)
+                self.switchToAccount(id: id, fromSettingsController: settingsController, withChatListController: chatListController)
+            })
+            return
+        }
+        //
         
         assert(Queue.mainQueue().isCurrent())
         var chatsBadge: String?

@@ -1070,16 +1070,14 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     PresentationAppIcon(isSGPro: true, name: "SGPro", imageName: "SGPro"),
                     PresentationAppIcon(isSGPro: true, name: "SGDay", imageName: "SGDay"),
                     PresentationAppIcon(isSGPro: true, name: "SGGold", imageName: "SGGold"),
-                    SGSimpleSettings.shared.duckyAppIconAvailable ? PresentationAppIcon(isSGPro: true, name: "SGDucky", imageName: "SGDucky") : PresentationAppIcon(name: "", imageName: ""), // Empty
+                    PresentationAppIcon(isSGPro: true, name: "SGDucky", imageName: "SGDucky"), // MARK: HolyGram: always offered
                     PresentationAppIcon(name: "SGNeon", imageName: "SGNeon"),
                     PresentationAppIcon(name: "SGNeonBlue", imageName: "SGNeonBlue"),
                     PresentationAppIcon(name: "SGGlass", imageName: "SGGlass"),
                     PresentationAppIcon(name: "SGSparkling", imageName: "SGSparkling"),
                 ]
 
-                if Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt" {
-                    icons.append(PresentationAppIcon(name: "SGBeta", imageName: "SGBeta"))
-                }
+                icons.append(PresentationAppIcon(name: "SGBeta", imageName: "SGBeta")) // MARK: HolyGram: always offered
                 //
                 
                 return icons
