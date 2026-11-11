@@ -79,6 +79,8 @@ private enum SGBoolSetting: String {
     case hidePrivateNotifications
     case chatListMarkers
     case ghostShortcut
+    case menuGhostChat
+    case menuSendReadNow
     case profileNote
     case showNoteOnOpen
     case muteNewChannels
@@ -424,6 +426,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     // 💬 Which HolyGram items appear in menus
     entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ ЧАТА (ДОЛГОЕ НАЖАТИЕ НА ЧАТ)" : "CHAT MENU (LONG-PRESS A CHAT)", badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuGhostException, value: settings.menuGhostException, text: ru ? "👁  Отправлять прочтение здесь" : "👁  Send Read Receipts Here", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuGhostChat, value: settings.menuGhostChat, text: ru ? "👻  Читать здесь незаметно" : "👻  Read Here Unseen", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSendReadNow, value: settings.menuSendReadNow, text: ru ? "✅  Отправить прочтение сейчас" : "✅  Send Read Receipt Now", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuHideChat, value: settings.menuHideChat, text: ru ? "🙈  Скрыть чат" : "🙈  Hide Chat", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuLockChat, value: settings.menuLockChat, text: ru ? "🔒  Закрыть Face ID" : "🔒  Lock with Face ID", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuSilentChat, value: settings.menuSilentChat, text: ru ? "🔕  Отправлять без звука" : "🔕  Always Send Silently", enabled: true))
@@ -431,7 +435,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuDeleteMine, value: settings.menuDeleteMine, text: ru ? "🗑  Удалить все мои сообщения" : "🗑  Delete All My Messages", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatNote, value: settings.menuChatNote, text: ru ? "📒  Заметка о чате" : "📒  Chat Note", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .profileNote, value: settings.profileNote, text: ru ? "📒  Заметка в профиле" : "📒  Note in Profiles", enabled: true))
-    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .chatListMarkers, value: settings.chatListMarkers, text: ru ? "🔒📒🔕  Значки у чатов в списке" : "🔒📒🔕  Markers in the Chat List", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .chatListMarkers, value: settings.chatListMarkers, text: ru ? "🔒📒🔕👻  Значки у чатов в списке" : "🔒📒🔕👻  Markers in the Chat List", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .showNoteOnOpen, value: settings.showNoteOnOpen, text: ru ? "📒  Показывать заметку при открытии чата" : "📒  Show the Note When a Chat Opens", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuClearCache, value: settings.menuClearCache, text: ru ? "🧹  Очистить кеш чата" : "🧹  Clear Chat Cache", enabled: true))
     entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ СООБЩЕНИЯ (ДОЛГОЕ НАЖАТИЕ НА СООБЩЕНИЕ)" : "MESSAGE MENU (LONG-PRESS A MESSAGE)", badge: nil))
@@ -805,6 +809,10 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.chatListMarkers = value
         case .ghostShortcut:
             SGSimpleSettings.shared.ghostShortcut = value
+        case .menuGhostChat:
+            SGSimpleSettings.shared.menuGhostChat = value
+        case .menuSendReadNow:
+            SGSimpleSettings.shared.menuSendReadNow = value
         case .profileNote:
             SGSimpleSettings.shared.profileNote = value
         case .muteNewChannels:

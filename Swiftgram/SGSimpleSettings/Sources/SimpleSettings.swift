@@ -144,6 +144,9 @@ public class SGSimpleSettings {
         case ghostShortcut
         case lockedAccounts
         case undoSendDelay
+        case ghostOnlyChats
+        case menuGhostChat
+        case menuSendReadNow
         case profileNote
         case showNoteOnOpen
         case muteNewChannels
@@ -371,6 +374,9 @@ public class SGSimpleSettings {
         Keys.ghostShortcut.rawValue: true,
         Keys.lockedAccounts.rawValue: [String](),
         Keys.undoSendDelay.rawValue: Int32(0),
+        Keys.ghostOnlyChats.rawValue: [String](),
+        Keys.menuGhostChat.rawValue: true,
+        Keys.menuSendReadNow.rawValue: true,
         Keys.profileNote.rawValue: true,
         Keys.showNoteOnOpen.rawValue: true,
         Keys.muteNewChannels.rawValue: false,
@@ -629,6 +635,18 @@ public class SGSimpleSettings {
     /// Notifications from hidden and Face ID-locked chats hide the sender and the text.
     @UserDefault(key: Keys.hidePrivateNotifications.rawValue)
     public var hidePrivateNotifications: Bool
+
+    /// Chats read unseen even with ghost mode off.
+    @UserDefault(key: Keys.ghostOnlyChats.rawValue)
+    public var ghostOnlyChats: [String]
+
+    /// Chat menu: read this chat unseen.
+    @UserDefault(key: Keys.menuGhostChat.rawValue)
+    public var menuGhostChat: Bool
+
+    /// Chat menu: send the read receipt now.
+    @UserDefault(key: Keys.menuSendReadNow.rawValue)
+    public var menuSendReadNow: Bool
 
     /// Seconds a text message waits with an Undo button before it is sent; 0 sends right away.
     @UserDefault(key: Keys.undoSendDelay.rawValue)
@@ -1058,7 +1076,28 @@ extension SGSimpleSettings {
     public var ghostBlocksReadReceipts: Bool { ghostActive && ghostNoReadReceipts }
     /// Same, except in chats the user excluded from ghost mode.
     public func ghostBlocksReadReceiptsInChat(_ peerIdValue: Int64) -> Bool {
-        return ghostBlocksReadReceipts && !ghostReadExceptions.contains(String(peerIdValue))
+        if ghostBlocksReadReceipts && !ghostReadExceptions.contains(String(peerIdValue)) {
+            return true
+        }
+        return isGhostChat(peerIdValue)
+    }
+    /// A chat read unseen on its own, whatever ghost mode is doing.
+    public func isGhostChat(_ peerIdValue: Int64) -> Bool {
+        let list = ghostOnlyChats
+        if list.isEmpty {
+            return false
+        }
+        return list.contains(String(peerIdValue)) && hgGhostAvailable && hgPro
+    }
+    public func setGhostChat(_ peerIdValue: Int64, _ enabled: Bool) {
+        var list = ghostOnlyChats.filter { $0 != String(peerIdValue) }
+        if enabled {
+            list.append(String(peerIdValue))
+        }
+        ghostOnlyChats = list
+    }
+    public func ghostBlocksTypingInChat(_ peerIdValue: Int64) -> Bool {
+        return ghostBlocksTyping || isGhostChat(peerIdValue)
     }
     public func isGhostReadException(_ peerIdValue: Int64) -> Bool {
         return ghostReadExceptions.contains(String(peerIdValue))

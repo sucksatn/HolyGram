@@ -147,3 +147,46 @@ public func holyGramDeleteMessagesFromPush(transaction: Transaction, mediaBox: M
         _internal_deleteMessages(transaction: transaction, mediaBox: mediaBox, ids: remaining, deleteMedia: true)
     }
 }
+
+/// MARK: HolyGram: tells the server a chat was read up to where it is read on this device,
+/// even while ghost mode keeps read receipts local.
+public func holyGramSendReadReceipt(account: Account, peerId: PeerId) -> Signal<Never, NoError> {
+    return account.postbox.transaction { transaction -> (Peer?, Int32?) in
+        let peer = transaction.getPeer(peerId)
+        var maxId: Int32?
+        if let state = transaction.getCombinedPeerReadState(peerId) {
+            for (namespace, readState) in state.states where namespace == Namespaces.Message.Cloud {
+                if case let .idBased(maxIncomingReadId, _, _, _, _) = readState {
+                    maxId = maxIncomingReadId
+                }
+            }
+        }
+        return (peer, maxId)
+    }
+    |> mapToSignal { peer, maxId -> Signal<Never, NoError> in
+        guard let peer, let maxId, maxId > 0 else {
+            return .complete()
+        }
+        if peer is TelegramChannel, let inputChannel = apiInputChannel(peer) {
+            return account.network.request(Api.functions.channels.readHistory(channel: inputChannel, maxId: maxId))
+            |> `catch` { _ -> Signal<Api.Bool, NoError> in
+                return .complete()
+            }
+            |> ignoreValues
+        }
+        guard let inputPeer = apiInputPeer(peer) else {
+            return .complete()
+        }
+        return account.network.request(Api.functions.messages.readHistory(peer: inputPeer, maxId: maxId))
+        |> map(Optional.init)
+        |> `catch` { _ -> Signal<Api.messages.AffectedMessages?, NoError> in
+            return .single(nil)
+        }
+        |> mapToSignal { result -> Signal<Never, NoError> in
+            if case let .affectedMessages(data)? = result {
+                account.stateManager.addUpdateGroups([.updatePts(pts: data.pts, ptsCount: data.ptsCount)])
+            }
+            return .complete()
+        }
+    }
+}
