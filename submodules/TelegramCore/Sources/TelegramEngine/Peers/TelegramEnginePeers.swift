@@ -1,3 +1,4 @@
+import SGSimpleSettings // MARK: HolyGram
 import Foundation
 import SwiftSignalKit
 import Postbox
@@ -589,7 +590,23 @@ public extension TelegramEngine {
         }
 
         public func joinChannel(peerId: PeerId, hash: String?, forNews: Bool = false) -> Signal<JoinChannelResult, JoinChannelError> {
-            return _internal_joinChannel(account: self.account, peerId: peerId, hash: hash, forNews: forNews)
+            let account = self.account
+            return _internal_joinChannel(account: account, peerId: peerId, hash: hash, forNews: forNews)
+            |> mapToSignal { result -> Signal<JoinChannelResult, JoinChannelError> in
+                // MARK: HolyGram: channels you join start muted
+                guard case .joined = result, SGSimpleSettings.shared.muteNewChannels && SGSimpleSettings.shared.hgPro else {
+                    return .single(result)
+                }
+                return account.postbox.transaction { transaction -> Void in
+                    if let channel = transaction.getPeer(peerId) as? TelegramChannel, case .broadcast = channel.info {
+                        _internal_updatePeerMuteSetting(account: account, transaction: transaction, peerId: peerId, threadId: nil, muteInterval: Int32.max)
+                    }
+                }
+                |> castError(JoinChannelError.self)
+                |> map { _ -> JoinChannelResult in
+                    return result
+                }
+            }
         }
 
         public func removePeerMember(peerId: PeerId, memberId: PeerId) -> Signal<Void, NoError> {

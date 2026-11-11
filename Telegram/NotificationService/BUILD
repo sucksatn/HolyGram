@@ -3,7 +3,8 @@ load("@build_bazel_rules_apple//apple:ios.bzl", "ios_unit_test")
 load("@build_bazel_rules_apple//apple/testing/default_runner:ios_test_runner.bzl", "ios_test_runner")
 
 sgdeps = [
-    "//Swiftgram/SGAppGroupIdentifier:SGAppGroupIdentifier"
+    "//Swiftgram/SGAppGroupIdentifier:SGAppGroupIdentifier",
+    "//Swiftgram/SGSimpleSettings:SGSimpleSettings", # MARK: HolyGram
 ]
 
 swift_library(

@@ -23,6 +23,7 @@ import WebKit
 import PeerNameColorScreen
 import UndoUI
 import SGProUI
+import UserNotifications
 
 
 private enum SGControllerSection: Int32, SGItemListSection {
@@ -75,6 +76,9 @@ private enum SGBoolSetting: String {
     case menuWriteAuthor
     case menuMessageCard
     case menuScheduleRepeat
+    case hidePrivateNotifications
+    case showNoteOnOpen
+    case muteNewChannels
     case menuSaveFile
     case menuQrCode
     case menuFixLayout
@@ -401,6 +405,8 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideSimilarChannels, value: settings.hideSimilarChannels, text: "📺  " + i18n("Settings.HGPrivacy.HideSimilarChannels", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePaidFeatureRows, value: settings.hidePaidFeatureRows, text: "⭐️  " + i18n("Settings.HGPrivacy.HidePaidRows", lang), enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hideFolderBadges, value: settings.hideFolderBadges, text: "🔢  " + i18n("Settings.Folders.HideBadges", lang), enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .hidePrivateNotifications, value: settings.hidePrivateNotifications && hasPro, text: "🔒  " + (ru ? "Скрывать уведомления из скрытых и закрытых чатов" : "Hide Notifications from Hidden & Locked Chats") + lock, enabled: hasPro))
+    entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .muteNewChannels, value: settings.muteNewChannels && hasPro, text: "📢  " + (ru ? "Новые каналы без звука" : "Mute Channels You Join") + lock, enabled: hasPro))
     entries.append(.toggle(id: id.count, section: .holyGramPrivacy, settingName: .alwaysSilent, value: settings.alwaysSilent && hasPro, text: "🔕  " + (ru ? "Всегда отправлять без звука" : "Always Send Silently") + lock, enabled: hasPro))
     let signature = settings.outgoingSignature
     entries.append(.action(id: id.count, section: .holyGramPrivacy, actionType: AnyHashable("hgEditSignature"), text: "✍️  " + (ru ? "Подпись к сообщениям" : "Message Signature") + lock + (signature.isEmpty ? "" : ": " + String(signature.prefix(30))), kind: .generic))
@@ -417,6 +423,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuCopyId, value: settings.menuCopyId, text: ru ? "#️⃣  Скопировать ID и ссылку" : "#️⃣  Copy ID and Link", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuDeleteMine, value: settings.menuDeleteMine, text: ru ? "🗑  Удалить все мои сообщения" : "🗑  Delete All My Messages", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuChatNote, value: settings.menuChatNote, text: ru ? "📒  Заметка о чате" : "📒  Chat Note", enabled: true))
+    entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .showNoteOnOpen, value: settings.showNoteOnOpen, text: ru ? "📒  Показывать заметку при открытии чата" : "📒  Show the Note When a Chat Opens", enabled: true))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .menuClearCache, value: settings.menuClearCache, text: ru ? "🧹  Очистить кеш чата" : "🧹  Clear Chat Cache", enabled: true))
     entries.append(.header(id: id.count, section: .holyGramMenus, text: ru ? "МЕНЮ СООБЩЕНИЯ (ДОЛГОЕ НАЖАТИЕ НА СООБЩЕНИЕ)" : "MESSAGE MENU (LONG-PRESS A MESSAGE)", badge: nil))
     entries.append(.toggle(id: id.count, section: .holyGramMenus, settingName: .contextShowRepeat, value: settings.contextShowRepeat, text: "➕  +1", enabled: true))
@@ -456,6 +463,7 @@ private func SGControllerEntries(presentationData: PresentationData, callListSet
     entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramNotes, text: (ru ? "📒  Заметки о чатах" : "📒  Chat Notes") + lock))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgArchiveInactive"), text: "📦  " + i18n("Settings.HGPrivacy.ArchiveInactive", lang) + lock, kind: .generic))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgReadAll"), text: (ru ? "✅  Прочитать все чаты" : "✅  Mark All Chats as Read") + lock, kind: .generic))
+    entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgReminders"), text: (ru ? "⏰  Мои напоминания" : "⏰  My Reminders") + lock, kind: .generic))
     entries.append(.disclosure(id: id.count, section: .holyGramTools, link: .holyGramNonMutual, text: (ru ? "💔  Не добавили вас в ответ" : "💔  Didn't Add You Back") + lock))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgAccountStats"), text: (ru ? "📊  Статистика аккаунта" : "📊  Account Statistics") + lock, kind: .generic))
     entries.append(.action(id: id.count, section: .holyGramTools, actionType: AnyHashable("hgExportContacts"), text: (ru ? "📇  Экспорт контактов (vCard)" : "📇  Export Contacts (vCard)") + lock, kind: .generic))
@@ -778,6 +786,13 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             SGSimpleSettings.shared.menuMessageCard = value
         case .menuScheduleRepeat:
             SGSimpleSettings.shared.menuScheduleRepeat = value
+        case .hidePrivateNotifications:
+            SGSimpleSettings.shared.hidePrivateNotifications = value
+            HolyGramShared.publishFromApp()
+        case .showNoteOnOpen:
+            SGSimpleSettings.shared.showNoteOnOpen = value
+        case .muteNewChannels:
+            SGSimpleSettings.shared.muteNewChannels = value
         case .menuSaveFile:
             SGSimpleSettings.shared.menuSaveFile = value
         case .menuQrCode:
@@ -1233,6 +1248,48 @@ public func sgSettingsController(context: AccountContext, page: HolyGramSettings
             hgPresentTextInput(title: ru ? "Подпись к сообщениям" : "Message Signature", message: ru ? "Добавляется в конец каждого отправленного текста. Оставьте пустым, чтобы выключить. Не добавляется в секретных чатах, ботам и к командам." : "Added to the end of every message you send. Leave empty to turn off. Not added in secret chats, to bots or to commands.", text: SGSimpleSettings.shared.outgoingSignature, placeholder: ru ? "Например: — отправлено из HolyGram" : "e.g. — sent from HolyGram", doneTitle: ru ? "Сохранить" : "Save", cancelTitle: ru ? "Отмена" : "Cancel", completion: { text in
                 SGSimpleSettings.shared.outgoingSignature = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 simplePromise.set(true)
+            })
+            return
+        }
+        // MARK: HolyGram: reminders set from the message menu, tap one to cancel it
+        if actionType == AnyHashable("hgReminders") {
+            let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
+            let ru = lang.hasPrefix("ru") || lang.hasPrefix("uk")
+            guard SGSimpleSettings.shared.hgPro else {
+                return
+            }
+            UNUserNotificationCenter.current().getPendingNotificationRequests(completionHandler: { requests in
+                let reminders = requests.filter { $0.identifier.hasPrefix("holygram-reminder-") }.map { request -> (UNNotificationRequest, Date?) in
+                    return (request, (request.trigger as? UNTimeIntervalNotificationTrigger)?.nextTriggerDate() ?? (request.trigger as? UNCalendarNotificationTrigger)?.nextTriggerDate())
+                }.sorted { ($0.1 ?? .distantFuture) < ($1.1 ?? .distantFuture) }
+                DispatchQueue.main.async {
+                    let formatter = DateFormatter()
+                    formatter.dateStyle = .short
+                    formatter.timeStyle = .short
+                    let sheet = UIAlertController(title: ru ? "Мои напоминания" : "My Reminders", message: reminders.isEmpty ? (ru ? "Напоминаний нет. Удерживайте сообщение → HolyGram → «Напомнить»." : "No reminders. Long-press a message → HolyGram → Remind Me.") : (ru ? "Нажмите на напоминание, чтобы отменить его." : "Tap a reminder to cancel it."), preferredStyle: .actionSheet)
+                    for (request, date) in reminders.prefix(20) {
+                        let when = date.map { formatter.string(from: $0) } ?? ""
+                        let title = "\(when) · \(String(request.content.body.replacingOccurrences(of: "\n", with: " ").prefix(40)))"
+                        sheet.addAction(UIAlertAction(title: title, style: .default, handler: { _ in
+                            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [request.identifier])
+                        }))
+                    }
+                    if reminders.count > 1 {
+                        sheet.addAction(UIAlertAction(title: ru ? "Отменить все (\(reminders.count))" : "Cancel All (\(reminders.count))", style: .destructive, handler: { _ in
+                            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: reminders.map { $0.0.identifier })
+                        }))
+                    }
+                    sheet.addAction(UIAlertAction(title: ru ? "Закрыть" : "Close", style: .cancel))
+                    guard let presenter = hgTopViewController() else {
+                        return
+                    }
+                    if let popover = sheet.popoverPresentationController {
+                        popover.sourceView = presenter.view
+                        popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1.0, height: 1.0)
+                        popover.permittedArrowDirections = []
+                    }
+                    presenter.present(sheet, animated: true)
+                }
             })
             return
         }
